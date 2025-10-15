@@ -11,7 +11,7 @@ const ASSISTANT_API = import.meta.env.VITE_ASSISTANT_API;
 const GENERATE_REPORT_API = import.meta.env.VITE_GENERATE_REPORT_API;
 const FM_API = import.meta.env.VITE_FM_API;
 const FM_AUTH = import.meta.env.VITE_FM_AUTH;
-const VERCEL_BYPASS = import.meta.env.VITE_VERCEL_BYPASS;
+// const VERCEL_BYPASS = import.meta.env.VITE_VERCEL_BYPASS;
 const OPENAI_KEY = import.meta.env.VITE_OPENAI_KEY;
 const ASSISTANT_ID = import.meta.env.VITE_ASSISTANT_ID;
 
@@ -22,6 +22,7 @@ const GenerateReport: React.FC = () => {
     setCustomReportConfig,
     userID,
     templateID,
+    // reportConfig,
   } = useAppContext();
 
   const [promptText, setPromptText] = useState("");
@@ -87,7 +88,7 @@ const GenerateReport: React.FC = () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-vercel-protection-bypass": VERCEL_BYPASS,
+        // "x-vercel-protection-bypass": VERCEL_BYPASS,
       },
       body: JSON.stringify(body),
     });
@@ -97,15 +98,42 @@ const GenerateReport: React.FC = () => {
   };
 
   const callGenerateReport = async (setup: any, config: any) => {
+    // 🧠 Normalize setup: ensure it's a plain JS object
+    let normalizedSetup;
+    try {
+      // If it's a stringified JSON, parse it
+      normalizedSetup = typeof setup === "string" ? JSON.parse(setup) : setup;
+    } catch (err) {
+      console.error("Invalid setup JSON passed:", err);
+      throw new Error("Invalid report_setup JSON format.");
+    }
+
+    const generateReportPayload = {
+      report_setup: normalizedSetup,
+      report_config: config,
+    };
+
+    console.log(
+      "Generate Report Payload:",
+      JSON.stringify(generateReportPayload)
+    );
+
+    // 📨 Send to backend (stringify once here)
     const res = await fetch(GENERATE_REPORT_API, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-vercel-protection-bypass": VERCEL_BYPASS,
+        // "x-vercel-protection-bypass": VERCEL_BYPASS,
       },
-      body: JSON.stringify({ report_setup: setup, report_config: config }),
+      body: JSON.stringify(generateReportPayload),
     });
-    if (!res.ok) throw new Error(`Generate-report failed (${res.status})`);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Generate-report error:", errText);
+      throw new Error(`Generate-report failed (${res.status})`);
+    }
+
     return res.json();
   };
 

@@ -115,9 +115,18 @@ const Preview: React.FC = () => {
           setReportJson(parsed);
         }
 
-        // Optional placeholders if you plan to use them later
-        if (setReportConfig) setReportConfig({});
-        if (setReportSetup) setReportSetup({});
+        setReportConfig(randomTemplate.ReportConfigJSON || null);
+        setReportSetup(randomTemplate.SetupJSON || null);
+
+        // // Optional placeholders if you plan to use them later
+        // if (setReportConfig)
+        //   setReportConfig(
+        //     randomTemplate.ReportConfig || randomTemplate.reportConfig || null
+        //   );
+        // if (setReportSetup)
+        //   setReportSetup(
+        //     randomTemplate.ReportSetup || randomTemplate.reportSetup || null
+        //   );
 
         setLoading(false);
       } catch (error) {
