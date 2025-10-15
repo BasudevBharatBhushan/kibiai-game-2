@@ -20,7 +20,7 @@ const useResponsiveScale = () => {
       if (containerRef.current && contentRef.current) {
         const containerWidth = containerRef.current.clientWidth;
         const contentWidth = contentRef.current.scrollWidth;
-        const availableWidth = containerWidth - 100;
+        const availableWidth = containerWidth - 60;
 
         if (contentWidth > availableWidth) {
           const newScale = availableWidth / contentWidth;
