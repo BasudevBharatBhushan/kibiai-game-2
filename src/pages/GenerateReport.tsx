@@ -101,22 +101,27 @@ const GenerateReport: React.FC = () => {
     // 🧠 Normalize setup: ensure it's a plain JS object
     let normalizedSetup;
     try {
-      // If it's a stringified JSON, parse it
       normalizedSetup = typeof setup === "string" ? JSON.parse(setup) : setup;
     } catch (err) {
       console.error("Invalid setup JSON passed:", err);
       throw new Error("Invalid report_setup JSON format.");
     }
 
-    const generateReportPayload = {
-      report_setup: normalizedSetup,
-      report_config: config,
+    // 🧩 Fix: ensure db_defination always has joined_table (empty string if missing)
+    const fixedConfig = {
+      ...config,
+      db_defination: (config.db_defination || []).map((def: any) => ({
+        joined_table: def.joined_table ?? "",
+        ...def, // spread after ensures other fields override defaults if present
+      })),
     };
 
-    console.log(
-      "Generate Report Payload:",
-      JSON.stringify(generateReportPayload)
-    );
+    const generateReportPayload = {
+      report_setup: normalizedSetup,
+      report_config: fixedConfig,
+    };
+
+    console.log("Generate Report Payload:", generateReportPayload);
 
     // 📨 Send to backend (stringify once here)
     const res = await fetch(GENERATE_REPORT_API, {
