@@ -1,0 +1,14 @@
+@import url("https://fonts.googleapis.com/css2?family=Baloo+2:wght@400..800&display=swap");
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Baloo 2", cursive; /* Fallback to cursive for this display font */
+  --color-primary: #5e17eb;
+  --color-secondary: #7456e1;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  overflow-y: auto; /* or hidden if you don’t want vertical scroll at all */
+}
