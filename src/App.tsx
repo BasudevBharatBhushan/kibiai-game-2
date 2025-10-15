@@ -7,6 +7,7 @@ import Instructions from "./pages/Instructions";
 import GenerateReport from "./pages/GenerateReport";
 import Score from "./pages/Score";
 import UserForm from "./pages/UserForm";
+import ReportPreview from "./pages/ReportPreview";
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/generate-report" element={<GenerateReport />} />
           <Route path="/score" element={<Score />} />
           <Route path="/user-form" element={<UserForm />} />
+          <Route path="/report-preview" element={<ReportPreview />} />
         </Routes>
       </main>
       {/* <Footer /> */}

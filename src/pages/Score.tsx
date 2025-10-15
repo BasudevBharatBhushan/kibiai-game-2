@@ -4,9 +4,17 @@ import kibiaiLogo from "../assets/images/kibiai.png";
 import titleImage from "../assets/images/title.png";
 import skeletonImage from "../assets/images/skeleton.png";
 import kibizsystems from "../assets/images/kibizsystems.png";
+import { useAppContext } from "../context/AppContext";
 
 const Score: React.FC = () => {
   const navigate = useNavigate();
+  const { score, userName, level } = useAppContext();
+
+  // Fallbacks if values are empty
+  const displayName = userName || "Explorer";
+  const displayLevel = level || "EASY";
+  const displayScore = typeof score === "number" && !isNaN(score) ? score : 0;
+
   return (
     <div className="w-screen h-screen bg-white flex justify-center items-center overflow-hidden">
       <div className="flex flex-col justify-between items-center w-full h-full px-6 py-12 lg:py-14 xl:py-2 max-w-2xl mx-auto">
@@ -29,24 +37,24 @@ const Score: React.FC = () => {
           {/* Score Card */}
           <div className="bg-gray-100 rounded-2xl shadow-md p-8 flex flex-col items-center justify-center text-center w-full max-w-md mb-8">
             <h1 className="text-2xl lg:text-3xl font-bold text-[#5e17eb] mb-2">
-              Hello, Basudev
+              Hello, {displayName}
             </h1>
-            <p className="text-gray-700 text-base lg:text-lg font-medium mb-8">
-              PROMPT-SAURUS
+            <p className="text-gray-700 text-base lg:text-lg font-medium mb-8 uppercase tracking-wide">
+              LEVEL: {displayLevel}
             </p>
 
             <h2 className="text-xl lg:text-2xl font-bold text-[#5e17eb] mb-4">
               TOTAL POINTS
             </h2>
             <div className="text-6xl font-bold text-[#5e17eb] mb-8 tracking-wide">
-              3 0
+              {displayScore}
             </div>
 
             <div className="text-center">
               <p className="text-gray-600 text-lg mb-2 font-medium">
                 YOUR RANK:
               </p>
-              <p className="text-3xl font-bold text-[#5e17eb]">21</p>
+              <p className="text-3xl font-bold text-[#5e17eb]">1</p>
             </div>
           </div>
 

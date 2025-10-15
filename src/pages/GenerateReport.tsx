@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import kibiaiLogo from "../assets/images/kibiai.png";
 import titleImage from "../assets/images/title.png";
 import skeletonImage from "../assets/images/skeleton.png";
@@ -16,6 +17,7 @@ const OPENAI_KEY = import.meta.env.VITE_OPENAI_KEY;
 const ASSISTANT_ID = import.meta.env.VITE_ASSISTANT_ID;
 
 const GenerateReport: React.FC = () => {
+  const navigate = useNavigate();
   const {
     reportSetup,
     setReportJson,
@@ -23,6 +25,10 @@ const GenerateReport: React.FC = () => {
     userID,
     templateID,
     // reportConfig,
+
+    setScore,
+
+    level,
   } = useAppContext();
 
   const [promptText, setPromptText] = useState("");
@@ -71,8 +77,6 @@ const GenerateReport: React.FC = () => {
       typeof setupJson === "string" ? setupJson : JSON.stringify(setupJson),
       "",
       `ReferenceDate: ${dateRef}`,
-      "",
-      "Please return only a JSON string in `latestMessage` that contains the updated report_config.",
     ].join("\n");
   };
 
@@ -144,7 +148,8 @@ const GenerateReport: React.FC = () => {
 
   const createSessionRecord = async (
     userPrompt: string,
-    aiResponse: string
+    aiResponse: string,
+    score: number
   ) => {
     const payload = {
       fmServer: "kibiz-linux.smtech.cloud",
@@ -157,7 +162,7 @@ const GenerateReport: React.FC = () => {
           TemplateID: templateID ? String(templateID) : "1",
           UserPrompt: userPrompt,
           AIResponse: aiResponse,
-          Score: 10,
+          Score: score,
           OpenAIThreadID: threadId,
         },
       },
@@ -175,6 +180,117 @@ const GenerateReport: React.FC = () => {
 
     if (!res.ok) throw new Error(`FM createSession failed (${res.status})`);
     return res.json();
+  };
+
+  // 🔍 Compare ideal vs user report configs and get numeric score
+  const compareReportsAndGetScore = async (
+    level: string,
+    idealReportConfig: any,
+    userReportConfig: any
+  ) => {
+    try {
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENAI_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a Report Comparison AI that evaluates the similarity between two JSON-based report queries. The goal is to determine how accurately the user's report query matches the ideal report configuration, considering structure, filters, joins, groupings, and sorting. Ignore titles and user-facing texts like 'report_header' or 'response_to_user'.",
+              },
+              {
+                role: "user",
+                content: `Compare the following report queries and return a score according to the level. Return only the score, no explanation.\n\nLEVEL: ${level}\n\nreportConfig:\n${JSON.stringify(
+                  idealReportConfig,
+                  null,
+                  2
+                )}\n\nuserReportConfig:\n${JSON.stringify(
+                  userReportConfig,
+                  null,
+                  2
+                )}`,
+              },
+            ],
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "ReportSimilarityScore",
+                  description:
+                    "Determines the similarity score between two report configuration JSONs (ideal vs user-generated).",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      score: {
+                        type: "number",
+                        description:
+                          "Final similarity score. Max depends on level: EASY=10, MEDIUM=35, HARD=50, EXPERT=100.",
+                      },
+                      level: {
+                        type: "string",
+                        enum: ["EASY", "MEDIUM", "HARD", "EXPERT"],
+                        description: "Report complexity level.",
+                      },
+                    },
+                    required: ["score", "level"],
+                  },
+                },
+              },
+            ],
+            tool_choice: "auto",
+          }),
+        }
+      );
+
+      if (!response.ok)
+        throw new Error(`OpenAI Evaluation API failed (${response.status})`);
+
+      const data = await response.json();
+
+      // ✅ Handle the tool_call style response
+      const toolCall =
+        data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
+
+      if (!toolCall) {
+        console.warn("Unexpected OpenAI response format:", data);
+        return 0;
+      }
+
+      // Parse the stringified JSON safely
+      const parsedArgs = JSON.parse(toolCall);
+      const numericScore = parsedArgs?.score;
+
+      if (typeof numericScore !== "number" || isNaN(numericScore)) {
+        console.warn("Invalid score extracted:", parsedArgs);
+        return 0;
+      }
+
+      // 🧮 Clamp score based on level to prevent overshooting
+      const maxScores: Record<string, number> = {
+        EASY: 10,
+        MEDIUM: 35,
+        HARD: 50,
+        EXPERT: 100,
+      };
+      const max = maxScores[level.toUpperCase()] ?? 10;
+      const finalScore = Math.min(Math.max(numericScore, 0), max);
+
+      console.log(
+        `✅ Score evaluated: ${finalScore}/${max} for level ${level}`
+      );
+
+      return finalScore;
+    } catch (err) {
+      console.error("Error comparing reports:", err);
+      return 0;
+    }
   };
 
   const handleSubmit = async () => {
@@ -208,11 +324,24 @@ const GenerateReport: React.FC = () => {
         return openModal(undefined, "Invalid parameters generated for report.");
 
       setReportJson(generated);
-      openModal(generated);
 
-      // 3️⃣ Create Session in FM
-      await createSessionRecord(promptText, msg);
-      setToast("Session saved successfully.");
+      // 🧮 3️⃣ Evaluate Score
+      const score = await compareReportsAndGetScore(
+        level, // make sure `level` is available from context
+        parsedConfig, // ideal (AI-generated config)
+        parsedConfig // placeholder; replace with user config if applicable
+      );
+      setScore(score);
+      console.log("AI Evaluation Score:", score);
+
+      // ✅ Navigate to report preview page
+      navigate("/report-preview");
+
+      // 4️⃣ Create Session in FM
+      await createSessionRecord(promptText, msg, score);
+      setToast(`Session saved successfully with score ${score}.`);
+
+      navigate("/report-preview");
     } catch (err: any) {
       console.error(err);
       openModal(undefined, "Invalid parameters generated for report.");
@@ -243,6 +372,8 @@ const GenerateReport: React.FC = () => {
       return [];
     }
   })();
+
+  console.log(tables, relationships);
 
   return (
     <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
@@ -287,50 +418,111 @@ const GenerateReport: React.FC = () => {
           </button>
 
           {/* Display Tables and Relationships */}
-          <div className="w-full flex flex-col lg:flex-row justify-between gap-6 bg-gray-100 rounded-2xl p-6 shadow-md mt-8">
-            <div className="flex-1">
-              <h3 className="text-[#5e17eb] font-bold text-lg mb-4 text-center lg:text-left">
-                TABLES
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {tables.length > 0 ? (
-                  tables.map((table) => (
-                    <div
-                      key={table}
-                      className="border-2 border-[#5e17eb] rounded-md h-8 flex items-center justify-center text-sm px-2"
-                    >
-                      {table}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-sm col-span-2">
-                    No tables found
-                  </p>
-                )}
-              </div>
-            </div>
 
-            <div className="flex-1">
-              <h3 className="text-[#5e17eb] font-bold text-lg mb-4 text-center lg:text-left">
-                RELATIONSHIPS
-              </h3>
-              <div className="grid grid-cols-1 gap-3">
-                {relationships.length > 0 ? (
-                  relationships.map((r: any, i: number) => (
-                    <div
-                      key={i}
-                      className="border-2 border-[#5e17eb] rounded-md h-8 flex items-center justify-center text-sm px-3"
-                    >
-                      {r.primary_table} → {r.joined_table || "<self>"}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-500 text-sm">
-                    No relationships found
+          {/* 🧭 Tables & Relationships Visualization */}
+          <div className="w-full bg-gray-100 rounded-2xl p-6 shadow-md mt-8">
+            <h3 className="text-[#5e17eb] font-bold text-lg mb-4 text-center">
+              DATABASE STRUCTURE
+            </h3>
+
+            {(() => {
+              try {
+                if (!reportSetup)
+                  return (
+                    <p className="text-gray-500 text-sm text-center">
+                      No setup found
+                    </p>
+                  );
+
+                const parsed =
+                  typeof reportSetup === "string"
+                    ? JSON.parse(reportSetup)
+                    : reportSetup;
+
+                const tables = parsed.tables || {};
+                const relationships = parsed.relationships || [];
+
+                // 🎨 Relationship color mapping
+                const colorPalette = [
+                  "#E57373", // red
+                  "#64B5F6", // blue
+                  "#81C784", // green
+                  "#BA68C8", // purple
+                  "#FFD54F", // yellow
+                  "#4DD0E1", // cyan
+                  "#A1887F", // brownish
+                  "#F06292", // pink
+                ];
+
+                const fieldColorMap: Record<string, string> = {};
+                relationships.forEach((rel: any, idx: number) => {
+                  const color = colorPalette[idx % colorPalette.length];
+                  if (rel.source)
+                    fieldColorMap[`${rel.primary_table}.${rel.source}`] = color;
+                  if (rel.target)
+                    fieldColorMap[`${rel.joined_table}.${rel.target}`] = color;
+                });
+
+                return (
+                  <div className="grid grid-cols-2 gap-6">
+                    {Object.entries(tables).map(
+                      ([tableName, tableData]: any) => {
+                        const fields = tableData.fields
+                          ? Object.keys(tableData.fields)
+                          : [];
+
+                        return (
+                          <div
+                            key={tableName}
+                            className="bg-white rounded-xl border border-[#5e17eb] shadow-sm p-4 flex flex-col"
+                          >
+                            <h4 className="text-[#5e17eb] font-bold text-center mb-2 text-lg">
+                              {tableName}
+                            </h4>
+
+                            <div className="max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-transparent">
+                              {fields.length > 0 ? (
+                                fields.map((field) => {
+                                  const fieldKey = `${tableName}.${field}`;
+                                  const color = fieldColorMap[fieldKey];
+                                  return (
+                                    <div
+                                      key={field}
+                                      className={`px-2 py-1 text-sm rounded-md mb-1 border ${
+                                        color ? "text-white" : "text-gray-700"
+                                      }`}
+                                      style={{
+                                        backgroundColor: color || "transparent",
+                                        borderColor: color || "#ddd",
+                                        transition:
+                                          "background-color 0.2s ease-in-out",
+                                      }}
+                                    >
+                                      {field}
+                                    </div>
+                                  );
+                                })
+                              ) : (
+                                <p className="text-gray-400 text-xs text-center">
+                                  No fields
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+                    )}
+                  </div>
+                );
+              } catch (err) {
+                console.error("Error rendering tables:", err);
+                return (
+                  <p className="text-red-500 text-sm text-center">
+                    Error parsing setup JSON
                   </p>
-                )}
-              </div>
-            </div>
+                );
+              }
+            })()}
           </div>
         </div>
 
@@ -374,7 +566,7 @@ const GenerateReport: React.FC = () => {
                     {modalError}
                   </div>
                 ) : reportData ? (
-                  <DynamicReport jsonData={reportData} />
+                  <DynamicReport key={Date.now()} jsonData={reportData} />
                 ) : (
                   <div className="text-center text-gray-600">
                     No report data available.
