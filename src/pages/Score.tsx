@@ -61,7 +61,7 @@ const Score: React.FC = () => {
           {/* Try Again Button */}
           <button
             className="bg-[#5e17eb] hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg"
-            onClick={() => navigate("/level")}
+            onClick={() => navigate("/")}
           >
             <img src={skeletonImage} alt="" className="h-6 lg:h-7" />
             <span>TRY AGAIN</span>

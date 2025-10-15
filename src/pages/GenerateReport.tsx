@@ -252,23 +252,14 @@ const GenerateReport: React.FC = () => {
       if (!response.ok)
         throw new Error(`OpenAI Evaluation API failed (${response.status})`);
 
+      // ✅ Direct JSON structure
       const data = await response.json();
 
-      // ✅ Handle the tool_call style response
-      const toolCall =
-        data?.choices?.[0]?.message?.tool_calls?.[0]?.function?.arguments;
-
-      if (!toolCall) {
-        console.warn("Unexpected OpenAI response format:", data);
-        return 0;
-      }
-
-      // Parse the stringified JSON safely
-      const parsedArgs = JSON.parse(toolCall);
-      const numericScore = parsedArgs?.score;
+      const numericScore = data?.score;
+      const resultLevel = data?.level || level;
 
       if (typeof numericScore !== "number" || isNaN(numericScore)) {
-        console.warn("Invalid score extracted:", parsedArgs);
+        console.warn("Invalid score format:", data);
         return 0;
       }
 
@@ -279,11 +270,12 @@ const GenerateReport: React.FC = () => {
         HARD: 50,
         EXPERT: 100,
       };
-      const max = maxScores[level.toUpperCase()] ?? 10;
+
+      const max = maxScores[resultLevel.toUpperCase()] ?? 10;
       const finalScore = Math.min(Math.max(numericScore, 0), max);
 
       console.log(
-        `✅ Score evaluated: ${finalScore}/${max} for level ${level}`
+        `✅ Score evaluated: ${finalScore}/${max} for level ${resultLevel}`
       );
 
       return finalScore;
@@ -323,7 +315,7 @@ const GenerateReport: React.FC = () => {
       if (!generated || Object.keys(generated).length === 0)
         return openModal(undefined, "Invalid parameters generated for report.");
 
-      setReportJson(generated);
+      setReportJson(generated.report_structure_json || {});
 
       // 🧮 3️⃣ Evaluate Score
       const score = await compareReportsAndGetScore(
