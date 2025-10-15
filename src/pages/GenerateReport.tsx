@@ -190,7 +190,7 @@ const GenerateReport: React.FC = () => {
   ) => {
     try {
       const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
+        "https://kiflow.kibizsystems.com/webhook/c244f271-3cab-439f-9ecc-af0e165e36db",
         {
           method: "POST",
           headers: {
