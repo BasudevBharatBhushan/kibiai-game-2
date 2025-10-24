@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "../../assets/styles/dynamicreport.css";
-import Logo from "../../assets/images/logo.svg";
+import Logo from "../../assets/images/kibiai.png";
 import { initializeA4Pagination } from "../../utils/utility";
 
 interface DynamicReportProps {
@@ -108,8 +108,8 @@ function generateDynamicReport(jsonData: any[]): string {
         <img src="${Logo}" alt="logo" style="width:100px">
         <div>
           <h1>${titleHeader.MainHeading}</h1>
-          <h2>U.S. Spice Mills • 4537 W. Fulton St. • Chicago, Illinois 60624 USA • www.usspice.com • (773) 378-6800</h2>
-        </div>
+         <h2>KiBiz Systems • 800-946-2854 • www.kibizsystems.com</h2>
+      </div>
       </div>
     `;
   }
