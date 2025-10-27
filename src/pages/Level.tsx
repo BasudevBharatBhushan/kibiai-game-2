@@ -11,7 +11,8 @@ import three from "../assets/images/3.png";
 import four from "../assets/images/4.png";
 
 const Level: React.FC = () => {
-  const { isUserSignedIn, level, setLevel } = useAppContext();
+  const { isUserSignedIn, level, setLevel, setIsReportGenerated } =
+    useAppContext();
   const navigate = useNavigate();
 
   // Local state to track selection
@@ -34,6 +35,8 @@ const Level: React.FC = () => {
       alert("Please select a level before continuing.");
       return;
     }
+
+    setIsReportGenerated(false);
 
     if (isUserSignedIn()) {
       navigate("/preview");
