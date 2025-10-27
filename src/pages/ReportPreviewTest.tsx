@@ -137,61 +137,66 @@ const ReportPreviewTest: React.FC = () => {
   }, [level, setTemplateID, setReportJson, setReportConfig, setReportSetup]);
 
   return (
-    <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
+    <div className="w-full min-h-screen bg-white flex flex-col items-center overflow-x-hidden overflow-y-auto p-4 md:p-6">
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
         <Header />
-
-        <div
+        <div 
           ref={containerRef}
-          className="
-    bg-gray-100 rounded-sm shadow-md w-full flex justify-center items-start
-    h-[70vh]         
-    xl:h-[800px]       
-    overflow-hidden   
-  "
+          className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+          style={{
+            height: 'calc(100vh - 300px)',
+            minHeight: '500px',
+            maxHeight: '800px',
+          }}
         >
           {loading ? (
-            <div className="text-center text-[#5e17eb] font-semibold p-10">
-              Loading Medium Level Report...
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-[#5e17eb] font-semibold p-6">
+                Loading Medium Level Report...
+              </div>
             </div>
           ) : reportJson ? (
             <div
               ref={contentRef}
-              className="w-full h-full overflow-hidden"
+              className="w-full h-full overflow-auto p-2 md:p-4"
               style={{
                 transform: `scale(${scale})`,
-                transformOrigin: "top center",
-                transition: "transform .3s ease",
+                transformOrigin: 'top center',
+                transition: 'transform 0.3s ease',
               }}
             >
               <DynamicReport jsonData={reportJson} />
             </div>
           ) : (
-            <div className="text-center text-gray-600 font-semibold">
-              No report template found.
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-gray-600 font-semibold p-6">
+                No report template found.
+              </div>
             </div>
           )}
         </div>
-
         <p className="text-[#5e17eb] text-center text-base lg:text-xl font-bold mt-6 mb-4">
           Preview of your Medium Level Report
         </p>
 
-        <button
-          disabled={loading || !reportJson}
-          onClick={() => navigate("/generate-report")}
-          className={`${
-            loading || !reportJson
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#5e17eb] hover:bg-purple-700"
-          } text-white font-semibold rounded-full shadow-lg px-8 py-3 text-lg flex items-center gap-3`}
-        >
-          <img src={skeletonImage} className="h-6 lg:h-7" />
-          {loading ? "LOADING..." : "READY TO PROMPT"}
-        </button>
+        <div className="w-full flex justify-center mt-6 mb-8">
+          <button
+            disabled={loading || !reportJson}
+            onClick={() => navigate("/generate-report")}
+            className={`${
+              loading || !reportJson
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#5e17eb] hover:bg-purple-700 transform hover:scale-105 transition-transform"
+            } text-white font-semibold rounded-full shadow-lg px-6 py-3 text-base sm:px-8 sm:py-3 sm:text-lg flex items-center gap-2 sm:gap-3`}
+          >
+            <img src={skeletonImage} className="h-5 sm:h-6 md:h-7" alt="" />
+            {loading ? "LOADING..." : "READY TO PROMPT"}
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
 export default ReportPreviewTest;
+ 
