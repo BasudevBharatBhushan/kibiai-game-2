@@ -291,62 +291,101 @@ const GenerateReport: React.FC = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!promptText.trim()) return alert("Please enter a prompt.");
-    if (!reportSetup) return alert("Missing report setup.");
-
-    setLoading(true);
-    try {
-      // 1️⃣ Assistant API
-      const assistantPrompt = buildAssistantPrompt(promptText, reportSetup);
-      const assistantRes = await callAssistant(assistantPrompt);
-      const msg = assistantRes.latestMessage || "";
-      const thread = assistantRes.threadId;
-      setThreadId(thread);
-
-      // parse message
-      let parsedConfig: any;
-      try {
-        parsedConfig = JSON.parse(msg);
-      } catch {
-        const match = msg.match(/\{[\s\S]*\}$/);
-        parsedConfig = match ? JSON.parse(match[0]) : null;
-      }
-      if (!parsedConfig) throw new Error("Invalid config from assistant");
-
-      setCustomReportConfig(parsedConfig);
-
-      // 2️⃣ Generate Report
-      const generated = await callGenerateReport(reportSetup, parsedConfig);
-      if (!generated || Object.keys(generated).length === 0)
-        return openModal(undefined, "Invalid parameters generated for report.");
-
-      setReportJson(generated.report_structure_json || {});
-
-      // 🧮 3️⃣ Evaluate Score
-      const score = await compareReportsAndGetScore(
-        level, // make sure `level` is available from context
-        parsedConfig, // ideal (AI-generated config)
-        parsedConfig // placeholder; replace with user config if applicable
+const handleSubmit = async () => {
+  if (!promptText.trim()) return alert("Please enter a prompt.");
+  if (!reportSetup) return alert("Missing report setup.");
+  
+  setLoading(true);
+  
+  try {
+    // 1️⃣ Assistant API
+    const assistantPrompt = buildAssistantPrompt(promptText, reportSetup);
+    const assistantRes = await callAssistant(assistantPrompt);
+    
+    // Validate assistant response
+    if (!assistantRes || !assistantRes.latestMessage) {
+      openModal(
+        "Insufficient Information", 
+        "Insufficient information provided to AI for report generation. Please provide more details in your prompt.\n\nAI Response: No response received"
       );
-      setScore(score);
-      console.log("AI Evaluation Score:", score);
-
-      // ✅ Navigate to report preview page
-      navigate("/report-preview");
-
-      // 4️⃣ Create Session in FM
-      await createSessionRecord(promptText, msg, score);
-      setToast(`Session saved successfully with score ${score}.`);
-
-      navigate("/report-preview");
-    } catch (err: any) {
-      console.error(err);
-      openModal(undefined, "Invalid parameters generated for report.");
-    } finally {
-      setLoading(false);
+      return;
     }
-  };
+    
+    const msg = assistantRes.latestMessage;
+    const thread = assistantRes.threadId;
+    setThreadId(thread);
+    
+    // Parse message
+    let parsedConfig: any;
+    try {
+      parsedConfig = JSON.parse(msg);
+    } catch {
+      const match = msg.match(/\{[\s\S]*\}$/);
+      parsedConfig = match ? JSON.parse(match[0]) : null;
+    }
+    
+    // Check if config is invalid (must have db_defination as primary indicator)
+    if (!parsedConfig || typeof parsedConfig !== 'object' || !parsedConfig.db_defination) {
+      openModal(
+        "Insufficient Information", 
+        `Insufficient information provided to AI for report generation. Please provide more specific details about the report you want to create.\n\nAI Response:\n${msg}`
+      );
+      return;
+    }
+    
+    setCustomReportConfig(parsedConfig);
+    
+    // 2️⃣ Generate Report
+    const generated = await callGenerateReport(reportSetup, parsedConfig);
+    
+    // Validate generated report
+    if (!generated || typeof generated !== 'object' || Object.keys(generated).length === 0) {
+      openModal(
+        "Insufficient Information", 
+        `Insufficient information provided to AI for report generation. Please refine your prompt with more details.\n\nAI Response:\n${msg}`
+      );
+      return;
+    }
+    
+    const reportJson = generated.report_structure_json || {};
+    
+    if (!reportJson || typeof reportJson !== 'object' || Object.keys(reportJson).length === 0) {
+      openModal(
+        "Insufficient Information", 
+        `Insufficient information provided to AI for report generation. Please try again with a more detailed prompt.\n\nAI Response:\n${msg}`
+      );
+      return;
+    }
+    
+    setReportJson(reportJson);
+    
+    // 🧮 3️⃣ Evaluate Score
+    const score = await compareReportsAndGetScore(
+      level,
+      parsedConfig, // ideal (AI-generated config)
+      parsedConfig  // placeholder; replace with user config if applicable
+    );
+    
+    setScore(score);
+    console.log("AI Evaluation Score:", score);
+    
+    // 4️⃣ Create Session in FM
+    await createSessionRecord(promptText, msg, score);
+    setToast(`Session saved successfully with score ${score}.`);
+    
+    // ✅ Navigate to report preview page
+    navigate("/report-preview");
+    
+  } catch (err: any) {
+    console.error("Report generation error:", err);
+    openModal(
+      "Insufficient Information", 
+      `Insufficient information provided to AI for report generation. Please try again with more details.\n\nError: ${err.message}`
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   // 🔍 Helper for displaying tables/relationships neatly
   const tables = (() => {
