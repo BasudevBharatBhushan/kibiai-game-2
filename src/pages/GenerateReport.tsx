@@ -291,101 +291,101 @@ const GenerateReport: React.FC = () => {
     }
   };
 
-const handleSubmit = async () => {
-  if (!promptText.trim()) return alert("Please enter a prompt.");
-  if (!reportSetup) return alert("Missing report setup.");
-  
-  setLoading(true);
-  
-  try {
-    // 1️⃣ Assistant API
-    const assistantPrompt = buildAssistantPrompt(promptText, reportSetup);
-    const assistantRes = await callAssistant(assistantPrompt);
-    
-    // Validate assistant response
-    if (!assistantRes || !assistantRes.latestMessage) {
-      openModal(
-        "Insufficient Information", 
-        "Insufficient information provided to AI for report generation. Please provide more details in your prompt.\n\nAI Response: No response received"
-      );
-      return;
-    }
-    
-    const msg = assistantRes.latestMessage;
-    const thread = assistantRes.threadId;
-    setThreadId(thread);
-    
-    // Parse message
-    let parsedConfig: any;
+  const handleSubmit = async () => {
+    if (!promptText.trim()) return alert("Please enter a prompt.");
+    if (!reportSetup) return alert("Missing report setup.");
+
+    setLoading(true);
+
     try {
-      parsedConfig = JSON.parse(msg);
-    } catch {
-      const match = msg.match(/\{[\s\S]*\}$/);
-      parsedConfig = match ? JSON.parse(match[0]) : null;
-    }
-    
-    // Check if config is invalid (must have db_defination as primary indicator)
-    if (!parsedConfig || typeof parsedConfig !== 'object' || !parsedConfig.db_defination) {
-      openModal(
-        "Insufficient Information", 
-        `Insufficient information provided to AI for report generation. Please provide more specific details about the report you want to create.\n\nAI Response:\n${msg}`
+      // 1️⃣ Assistant API
+      const assistantPrompt = buildAssistantPrompt(promptText, reportSetup);
+      const assistantRes = await callAssistant(assistantPrompt);
+
+      // Validate assistant response
+      if (!assistantRes || !assistantRes.latestMessage) {
+        openModal(
+          "Insufficient Information",
+          "Insufficient information provided to AI for report generation. Please provide more details in your prompt.\n\nAI Response: No response received"
+        );
+        return;
+      }
+
+      const msg = assistantRes.latestMessage;
+      const thread = assistantRes.threadId;
+      setThreadId(thread);
+
+      // Parse message
+      let parsedConfig: any;
+      try {
+        parsedConfig = JSON.parse(msg);
+      } catch {
+        const match = msg.match(/\{[\s\S]*\}$/);
+        parsedConfig = match ? JSON.parse(match[0]) : null;
+      }
+
+      // Check if config is invalid (must have db_defination as primary indicator)
+      if (!parsedConfig || typeof parsedConfig !== 'object' || !parsedConfig.db_defination) {
+        openModal(
+          "Insufficient Information",
+          `Insufficient information provided to AI for report generation. Please provide more specific details about the report you want to create.\n\nAI Response:\n${msg}`
+        );
+        return;
+      }
+
+      setCustomReportConfig(parsedConfig);
+
+      // 2️⃣ Generate Report
+      const generated = await callGenerateReport(reportSetup, parsedConfig);
+
+      // Validate generated report
+      if (!generated || typeof generated !== 'object' || Object.keys(generated).length === 0) {
+        openModal(
+          "Insufficient Information",
+          `Insufficient information provided to AI for report generation. Please refine your prompt with more details.\n\nAI Response:\n${msg}`
+        );
+        return;
+      }
+
+      const reportJson = generated.report_structure_json || {};
+
+      if (!reportJson || typeof reportJson !== 'object' || Object.keys(reportJson).length === 0) {
+        openModal(
+          "Insufficient Information",
+          `Insufficient information provided to AI for report generation. Please try again with a more detailed prompt.\n\nAI Response:\n${msg}`
+        );
+        return;
+      }
+
+      setReportJson(reportJson);
+
+      // 🧮 3️⃣ Evaluate Score
+      const score = await compareReportsAndGetScore(
+        level,
+        parsedConfig, // ideal (AI-generated config)
+        parsedConfig  // placeholder; replace with user config if applicable
       );
-      return;
-    }
-    
-    setCustomReportConfig(parsedConfig);
-    
-    // 2️⃣ Generate Report
-    const generated = await callGenerateReport(reportSetup, parsedConfig);
-    
-    // Validate generated report
-    if (!generated || typeof generated !== 'object' || Object.keys(generated).length === 0) {
+
+      setScore(score.score_json);
+      console.log("AI Evaluation Score:", score.score_json);
+
+      // 4️⃣ Create Session in FM
+      await createSessionRecord(promptText, msg, score);
+      setToast(`Session saved successfully with score ${score}.`);
+
+      // ✅ Navigate to report preview page
+      navigate("/report-preview");
+
+    } catch (err: any) {
+      console.error("Report generation error:", err);
       openModal(
-        "Insufficient Information", 
-        `Insufficient information provided to AI for report generation. Please refine your prompt with more details.\n\nAI Response:\n${msg}`
+        "Insufficient Information",
+        `Insufficient information provided to AI for report generation. Please try again with more details.\n\nError: ${err.message}`
       );
-      return;
+    } finally {
+      setLoading(false);
     }
-    
-    const reportJson = generated.report_structure_json || {};
-    
-    if (!reportJson || typeof reportJson !== 'object' || Object.keys(reportJson).length === 0) {
-      openModal(
-        "Insufficient Information", 
-        `Insufficient information provided to AI for report generation. Please try again with a more detailed prompt.\n\nAI Response:\n${msg}`
-      );
-      return;
-    }
-    
-    setReportJson(reportJson);
-    
-    // 🧮 3️⃣ Evaluate Score
-    const score = await compareReportsAndGetScore(
-      level,
-      parsedConfig, // ideal (AI-generated config)
-      parsedConfig  // placeholder; replace with user config if applicable
-    );
-    
-    setScore(score);
-    console.log("AI Evaluation Score:", score);
-    
-    // 4️⃣ Create Session in FM
-    await createSessionRecord(promptText, msg, score);
-    setToast(`Session saved successfully with score ${score}.`);
-    
-    // ✅ Navigate to report preview page
-    navigate("/report-preview");
-    
-  } catch (err: any) {
-    console.error("Report generation error:", err);
-    openModal(
-      "Insufficient Information", 
-      `Insufficient information provided to AI for report generation. Please try again with more details.\n\nError: ${err.message}`
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // 🔍 Helper for displaying tables/relationships neatly
   const tables = (() => {
@@ -437,11 +437,10 @@ const handleSubmit = async () => {
           <button
             disabled={loading}
             onClick={handleSubmit}
-            className={`mt-8 ${
-              loading
+            className={`mt-8 ${loading
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-[#5e17eb] hover:bg-purple-700"
-            } text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg`}
+              } text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg`}
           >
             <img src={skeletonImage} alt="" className="h-6 lg:h-7" />
             <span>{loading ? "PROCESSING..." : "SUBMIT"}</span>
@@ -518,9 +517,8 @@ const handleSubmit = async () => {
                                   return (
                                     <div
                                       key={field}
-                                      className={`px-2 py-1 text-sm rounded-md mb-1 border ${
-                                        color ? "text-white" : "text-gray-700"
-                                      }`}
+                                      className={`px-2 py-1 text-sm rounded-md mb-1 border ${color ? "text-white" : "text-gray-700"
+                                        }`}
                                       style={{
                                         backgroundColor: color || "transparent",
                                         borderColor: color || "#ddd",
