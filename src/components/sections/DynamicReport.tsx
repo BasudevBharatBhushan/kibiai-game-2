@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import "../../assets/styles/dynamicreport.css";
-import Logo from "../../assets/images/kibiai.png";
 import { initializeA4Pagination } from "../../utils/utility";
 
 interface DynamicReportProps {
