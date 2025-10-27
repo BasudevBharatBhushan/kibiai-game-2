@@ -214,27 +214,76 @@ const GenerateReport: React.FC = () => {
           },
           body: JSON.stringify({
             model: "gpt-4o",
-            level,
-            idealReportConfig,
-            userReportConfig,
+            tool_choice: "auto",
+            tools: [
+              {
+                type: "function",
+                function: {
+                  name: "ReportSimilarityScore",
+                  description:
+                    "Evaluates similarity between ideal and user report configs and returns a friendly overview and score.",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      score: { type: "number" },
+                      max_score: { type: "number" },
+                      level: {
+                        type: "string",
+                        enum: ["EASY", "MEDIUM", "HARD", "EXPERT"],
+                      },
+                      overview: {
+                        type: "object",
+                        properties: {
+                          columns: { type: "object" },
+                          group_by: { type: "object" },
+                          filters: { type: "object" },
+                          date_range: { type: "object" },
+                          sorting: { type: "object" },
+                          joins: { type: "object" },
+                        },
+                      },
+                      suggestions: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                    },
+                    required: [
+                      "score",
+                      "max_score",
+                      "level",
+                      "overview",
+                      "suggestions",
+                    ],
+                  },
+                },
+              },
+            ],
+            messages: [
+              {
+                role: "system",
+                content:
+                  'You are a Report Comparison AI that scores user-generated reports against ideal reference reports using item-by-item matching.\n\n## Scoring Limits\nEASY: 15 | MEDIUM: 35 | HARD: 50 | EXPERT: 100\n\n## Compare (Weighted by Priority)\nCore (Highest Priority): Tables, Joins, Filters, Groupings, Aggregations\nSecondary (Medium Priority): Sorting, Field Selection, Calculated Fields, Date Ranges\nOptional (Low Priority): Aliases, Formatting, Limits\n\n## Ignore\nReport titles, headers, labels, metadata, \'response_to_user\', \'report_header\', cosmetic JSON differences.\n\n## Scoring Formula\n1. Count scoreable items in the ideal report (exclude ignored elements)\n2. Points per item = Max Score / Total Items\n3. Award: Full points for exact match, Half points for partial match, Zero for missing or incorrect\n4. Logical equivalence > syntax (e.g., Status=\'Active\' equals \'Active\'=Status)\n5. Final score must be a whole number\n\n## Output Expectation\nYour tone should be friendly, supportive, and user-oriented (like a helpful mentor).\nReturn ONLY a function call using the provided tool with the following JSON structure:\n{\n  "score": <number>,\n  "max_score": <15|35|50|100>,\n  "level": "<EASY|MEDIUM|HARD|EXPERT>",\n  "overview": {\n    "columns": { "status": "<matched|partial|mismatch>", "notes": "<string>" },\n    "group_by": { "status": "<matched|partial|mismatch>", "notes": "<string>" },\n    "filters": { "status": "<matched|partial|mismatch>", "notes": "<string>" },\n    "date_range": { "status": "<matched|partial|mismatch>", "notes": "<string>" },\n    "sorting": { "status": "<matched|partial|mismatch>", "notes": "<string>" },\n    "joins": { "status": "<matched|partial|mismatch>", "notes": "<string>" }\n  },\n  "suggestions": [\n    "<improvement 1>",\n    "<improvement 2>"\n  ]\n}',
+              },
+              {
+                role: "user",
+                content: `Compare the reports and return the score with a user-friendly overview.\n\nLEVEL: ${level}\n\nIdealReportConfig:\n${JSON.stringify(
+                  idealReportConfig
+                )}\n\nuserReportConfig:\n${JSON.stringify(userReportConfig)}`,
+              },
+            ],
           }),
         }
       );
 
       if (!response.ok)
-        throw new Error(`Evaluation API failed (${response.status})`);
+        throw new Error(`OpenAI Evaluation API failed (${response.status})`);
 
-      // NEW: Direct JSON response (no tool_call parsing)
+      // ✅ Only change: parse direct JSON
       const data = await response.json();
 
-      if (!data || typeof data.score !== "number") {
-        console.warn("Invalid score format:", data);
-        return { score: 0, score_json: null };
-      }
-
       return {
-        score: data.score, // numeric score only
-        score_json: data, // full score JSON (overview + suggestions)
+        score: data.score ?? 0,
+        score_json: data ?? null,
       };
     } catch (err) {
       console.error("Error comparing reports:", err);
