@@ -8,7 +8,7 @@ import Footer from "../components/common/Footer";
 const Score: React.FC = () => {
   const navigate = useNavigate();
   const { score, userName, level } = useAppContext();
-
+  console.log(level);
   // ✅ TEST JSON (Remove once done testing UI)
   const testScore = {
     score: 12,
@@ -36,18 +36,18 @@ const Score: React.FC = () => {
   const overview = displayScoreJSON.overview || {};
   const suggestions = displayScoreJSON.suggestions || [];
 
-  const statusColor = (status?: string) => {
-    switch (status) {
-      case "matched":
-        return "text-green-600";
-      case "partial":
-        return "text-yellow-600";
-      case "mismatch":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
-    }
-  };
+  // const statusColor = (status?: string) => {
+  //   switch (status) {
+  //     case "matched":
+  //       return "text-green-600";
+  //     case "partial":
+  //       return "text-yellow-600";
+  //     case "mismatch":
+  //       return "text-red-600";
+  //     default:
+  //       return "text-gray-600";
+  //   }
+  // };
 
   const statusBadgeColor = (status?: string) => {
     switch (status) {

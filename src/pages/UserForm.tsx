@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import kibiaiLogo from "../assets/images/kibiai.png";
-import titleImage from "../assets/images/title.png";
+
 import skeletonImage from "../assets/images/skeleton.png";
-import kibizsystems from "../assets/images/kibizsystems.png";
+
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
 

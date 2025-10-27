@@ -1,7 +1,6 @@
 import React from "react";
 import kibizsystems from "../../assets/images/kibizsystems.png";
 import titleImage from "../../assets/images/title.png";
-import kibiaiLogo from "../../assets/images/kibiai.png";
 
 //Header Component
 

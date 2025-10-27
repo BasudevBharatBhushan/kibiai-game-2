@@ -151,7 +151,7 @@ const Preview: React.FC = () => {
         >
           {loading ? (
             <div className="text-center text-[#5e17eb] font-semibold p-10">
-              Loading ${level} Level Report...
+              Loading {level} Level Report...
             </div>
           ) : reportJson ? (
             <div
