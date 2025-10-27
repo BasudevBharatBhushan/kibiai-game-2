@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import kibiaiLogo from "../assets/images/kibiai.png";
-import titleImage from "../assets/images/title.png";
 import skeletonImage from "../assets/images/skeleton.png";
-import kibizsystems from "../assets/images/kibizsystems.png";
 import DynamicReport from "../components/sections/DynamicReport";
 import { useAppContext } from "../context/AppContext";
+import Header from "../components/common/Header";
+import Footer from "../components/common/Footer";
 
 // ✅ Environment Variables (from .env)
 const ASSISTANT_API = import.meta.env.VITE_ASSISTANT_API;
@@ -97,6 +96,8 @@ const GenerateReport: React.FC = () => {
       body: JSON.stringify(body),
     });
 
+    //Set generate report true
+
     if (!res.ok) throw new Error(`Assistant API failed (${res.status})`);
     return res.json();
   };
@@ -145,11 +146,25 @@ const GenerateReport: React.FC = () => {
 
     return res.json();
   };
+  interface ScoreJSON {
+    score: number; // required
+    max_score?: number;
+    level?: "EASY" | "MEDIUM" | "HARD" | "EXPERT";
+    overview?: {
+      columns?: Record<string, any>;
+      group_by?: Record<string, any>;
+      filters?: Record<string, any>;
+      date_range?: Record<string, any>;
+      sorting?: Record<string, any>;
+      joins?: Record<string, any>;
+    };
+    suggestions?: string[];
+  }
 
   const createSessionRecord = async (
     userPrompt: string,
     aiResponse: string,
-    score: number
+    score: ScoreJSON
   ) => {
     const payload = {
       fmServer: "kibiz-linux.smtech.cloud",
@@ -198,53 +213,64 @@ const GenerateReport: React.FC = () => {
             Authorization: `Bearer ${OPENAI_KEY}`,
           },
           body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a Report Comparison AI that evaluates the similarity between two JSON-based report queries. The goal is to determine how accurately the user's report query matches the ideal report configuration, considering structure, filters, joins, groupings, and sorting. Ignore titles and user-facing texts like 'report_header' or 'response_to_user'.",
-              },
-              {
-                role: "user",
-                content: `Compare the following report queries and return a score according to the level. Return only the score, no explanation.\n\nLEVEL: ${level}\n\nreportConfig:\n${JSON.stringify(
-                  idealReportConfig,
-                  null,
-                  2
-                )}\n\nuserReportConfig:\n${JSON.stringify(
-                  userReportConfig,
-                  null,
-                  2
-                )}`,
-              },
-            ],
+            model: "gpt-4o",
+            tool_choice: "auto",
             tools: [
               {
                 type: "function",
                 function: {
                   name: "ReportSimilarityScore",
                   description:
-                    "Determines the similarity score between two report configuration JSONs (ideal vs user-generated).",
+                    "Evaluates similarity between ideal and user report configs and returns a friendly overview and score.",
                   parameters: {
                     type: "object",
                     properties: {
-                      score: {
-                        type: "number",
-                        description:
-                          "Final similarity score. Max depends on level: EASY=10, MEDIUM=35, HARD=50, EXPERT=100.",
-                      },
+                      score: { type: "number" },
+                      max_score: { type: "number" },
                       level: {
                         type: "string",
                         enum: ["EASY", "MEDIUM", "HARD", "EXPERT"],
-                        description: "Report complexity level.",
+                      },
+                      overview: {
+                        type: "object",
+                        properties: {
+                          columns: { type: "object" },
+                          group_by: { type: "object" },
+                          filters: { type: "object" },
+                          date_range: { type: "object" },
+                          sorting: { type: "object" },
+                          joins: { type: "object" },
+                        },
+                      },
+                      suggestions: {
+                        type: "array",
+                        items: { type: "string" },
                       },
                     },
-                    required: ["score", "level"],
+                    required: [
+                      "score",
+                      "max_score",
+                      "level",
+                      "overview",
+                      "suggestions",
+                    ],
                   },
                 },
               },
             ],
-            tool_choice: "auto",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a Report Comparison AI that scores user-generated reports against ideal reference reports using item-by-item matching.\n\n## Scoring Limits\nEASY: 15 | MEDIUM: 35 | HARD: 50 | EXPERT: 100\n\n## Compare (Weighted by Priority)\nCore (Highest Priority): Tables, Joins, Filters, Groupings, Aggregations\nSecondary (Medium Priority): Sorting, Field Selection, Calculated Fields, Date Ranges\nOptional (Low Priority): Aliases, Formatting, Limits\n\n## Ignore\nReport titles, headers, labels, metadata, 'response_to_user', 'report_header', cosmetic JSON differences.\n\n## Scoring Formula\n1. Count scoreable items in the ideal report (exclude ignored elements)\n2. Points per item = Max Score / Total Items\n3. Award: Full points for exact match, Half points for partial match, Zero for missing or incorrect\n4. Logical equivalence > syntax (e.g., Status='Active' equals 'Active'=Status)\n5. Final score must be a whole number\n\n## Output Expectation\nYour tone should be friendly, supportive, and user-oriented.\nReturn ONLY a function call using the provided tool with the required JSON.",
+              },
+              {
+                role: "user",
+                content: `Compare the reports and return the score with a user-friendly overview.\n\nLEVEL: ${level}\n\nreportConfig:\n${JSON.stringify(
+                  idealReportConfig
+                )}\n\nuserReportConfig:\n${JSON.stringify(userReportConfig)}`,
+              },
+            ],
           }),
         }
       );
@@ -252,36 +278,22 @@ const GenerateReport: React.FC = () => {
       if (!response.ok)
         throw new Error(`OpenAI Evaluation API failed (${response.status})`);
 
-      // ✅ Direct JSON structure
       const data = await response.json();
+      const toolCall = data?.tool_calls?.[0]?.function?.arguments;
+      const parsed = toolCall ? JSON.parse(toolCall) : null;
 
-      const numericScore = data?.score;
-      const resultLevel = data?.level || level;
-
-      if (typeof numericScore !== "number" || isNaN(numericScore)) {
+      if (!parsed || typeof parsed.score !== "number") {
         console.warn("Invalid score format:", data);
-        return 0;
+        return { score: 0, score_json: null };
       }
 
-      // 🧮 Clamp score based on level to prevent overshooting
-      const maxScores: Record<string, number> = {
-        EASY: 10,
-        MEDIUM: 35,
-        HARD: 50,
-        EXPERT: 100,
+      return {
+        score: parsed.score, // numeric score only
+        score_json: parsed, // full score JSON (to be renamed later)
       };
-
-      const max = maxScores[resultLevel.toUpperCase()] ?? 10;
-      const finalScore = Math.min(Math.max(numericScore, 0), max);
-
-      console.log(
-        `✅ Score evaluated: ${finalScore}/${max} for level ${resultLevel}`
-      );
-
-      return finalScore;
     } catch (err) {
       console.error("Error comparing reports:", err);
-      return 0;
+      return { score: 0, score_json: null };
     }
   };
 
@@ -368,27 +380,20 @@ const GenerateReport: React.FC = () => {
   console.log(tables, relationships);
 
   return (
-    <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="flex flex-col justify-between items-center w-full h-full px-6 py-12 lg:py-14 max-w-2xl mx-auto">
+    <div className="w-screen h-screen bg-white flex justify-center items-start overflow-x-hidden overflow-y-auto">
+      <div className="flex flex-col justify-between items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col items-center justify-center gap-4 mb-4">
-          <img
-            src={kibizsystems}
-            alt="KiBiz Systems"
-            className="h-16 lg:h-20 object-contain"
-          />
-          <img
-            src={titleImage}
-            alt="Prompt-O-Saurus"
-            className="h-24 lg:h-32 object-contain"
-          />
-        </div>
+        <Header />
 
         {/* Main Input */}
         <div className="flex flex-col items-center justify-center flex-1 w-full mt-2 mb-6">
-          <h1 className="text-2xl font-bold text-[#5e17eb] mb-6">
-            PROMPT-SAURUS
-          </h1>
+          <button
+            onClick={() => navigate("/preview")}
+            className="mb-6 px-6 py-2 border border-[#5e17eb] text-[#5e17eb] hover:bg-[#5e17eb] hover:text-white font-light rounded-full transition-all duration-200 text-lg"
+          >
+            SHOW PREVIEW
+          </button>
+
           <textarea
             value={promptText}
             onChange={(e) => setPromptText(e.target.value)}
@@ -519,16 +524,7 @@ const GenerateReport: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col items-center gap-2 mt-4 mb-2">
-          <p className="text-[#7456e1] text-sm lg:text-base font-semibold">
-            POWERED BY
-          </p>
-          <img
-            src={kibiaiLogo}
-            alt="KiBi-AI"
-            className="h-16 lg:h-20 object-contain"
-          />
-        </div>
+        <Footer />
       </div>
 
       {/* Modal Preview */}

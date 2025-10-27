@@ -31,14 +31,20 @@ const DynamicReport: React.FC<DynamicReportProps> = ({ jsonData }) => {
 
   useEffect(() => {
     if (reportHtml) {
-      const paginationInstance = initializeA4Pagination();
+      const paginationInstance = initializeA4Pagination((page: number) => {
+        setCurrentPage(page); // ✅ This updates your UI
+      });
       setPagination(paginationInstance);
       setTotalPages(paginationInstance.getTotalPages());
     }
   }, [reportHtml]);
 
   return (
-    <div id="main-div">
+    <div
+      id="main-div"
+      className=""
+      style={{ height: "100%", maxHeight: "100%" }}
+    >
       {/* Floating Pagination */}
       <div className="floating-pagination">
         <button

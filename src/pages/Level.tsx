@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import titleImage from "../assets/images/title.png";
 import skeletonImage from "../assets/images/skeleton.png";
-import kibizsystems from "../assets/images/kibizsystems.png";
 import { useAppContext } from "../context/AppContext";
+import Header from "../components/common/Header";
+import Footer from "../components/common/Footer";
 
 import one from "../assets/images/1.png";
 import two from "../assets/images/2.png";
@@ -43,21 +43,10 @@ const Level: React.FC = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen bg-white flex justify-center items-center overflow-hidden">
-      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-12 lg:py-16 xl:py-2 max-w-2xl mx-auto">
+    <div className="w-screen min-h-screen bg-white flex justify-center items-start overflow-hidden">
+      <div className="grid grid-rows-[auto_1fr_auto] w-full min-h-screen px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header Section */}
-        <div className="flex flex-col items-center justify-center gap-4 mb-6">
-          <img
-            src={kibizsystems}
-            alt="KiBiz Systems"
-            className="h-16 lg:h-20 object-contain"
-          />
-          <img
-            src={titleImage}
-            alt="Prompt-O-Saurus"
-            className="h-24 lg:h-32 object-contain"
-          />
-        </div>
+        <Header />
 
         {/* Level Selection Section */}
         <div className="flex flex-col items-center justify-center gap-8 text-center">
@@ -99,18 +88,21 @@ const Level: React.FC = () => {
               </div>
             ))}
           </div>
+
+          {/* Continue Button */}
+          <div className="mt-10">
+            <button
+              className="bg-[#5e17eb] hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg"
+              onClick={handleClick}
+            >
+              <img src={skeletonImage} alt="" className="h-6 lg:h-7" />
+              <span>CONTINUE</span>
+            </button>
+          </div>
         </div>
 
-        {/* Continue Button */}
-        <div className="mt-10">
-          <button
-            className="bg-[#5e17eb] hover:bg-purple-700 text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg"
-            onClick={handleClick}
-          >
-            <img src={skeletonImage} alt="" className="h-6 lg:h-7" />
-            <span>CONTINUE</span>
-          </button>
-        </div>
+        {/* Footer Component */}
+        <Footer />
       </div>
     </div>
   );

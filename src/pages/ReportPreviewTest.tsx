@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import titleImage from "../assets/images/title.png";
+
 import skeletonImage from "../assets/images/skeleton.png";
-import kibizsystems from "../assets/images/kibizsystems.png";
+
 import DynamicReport from "../components/sections/DynamicReport";
 import { useAppContext } from "../context/AppContext";
+import Header from "../components/common/Header";
 
 const API_URL = "https://python-fm-dapi-weaver.onrender.com/api/dataApi";
 const AUTH_HEADER = "Basic RGV2ZWxvcGVyOmFkbWluYml6";
@@ -137,20 +138,17 @@ const ReportPreviewTest: React.FC = () => {
 
   return (
     <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-12 lg:py-16 xl:py-2 max-w-2xl mx-auto">
-        <div className="flex flex-col items-center justify-center gap-4 mb-6">
-          <img src={kibizsystems} alt="KiBiz" className="h-16 lg:h-20" />
-          <img
-            src={titleImage}
-            alt="Prompt-O-Saurus"
-            className="h-24 lg:h-32"
-          />
-        </div>
+      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
+        <Header />
 
         <div
           ref={containerRef}
-          className="bg-gray-100 rounded-2xl shadow-md  w-full flex justify-center items-start overflow-hidden"
-          style={{ height: "60vh" }}
+          className="
+    bg-gray-100 rounded-sm shadow-md w-full flex justify-center items-start
+    h-[70vh]         
+    xl:h-[800px]       
+    overflow-hidden   
+  "
         >
           {loading ? (
             <div className="text-center text-[#5e17eb] font-semibold p-10">
@@ -159,7 +157,7 @@ const ReportPreviewTest: React.FC = () => {
           ) : reportJson ? (
             <div
               ref={contentRef}
-              className="w-full h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400"
+              className="w-full h-full overflow-hidden"
               style={{
                 transform: `scale(${scale})`,
                 transformOrigin: "top center",

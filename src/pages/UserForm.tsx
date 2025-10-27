@@ -4,6 +4,8 @@ import kibiaiLogo from "../assets/images/kibiai.png";
 import titleImage from "../assets/images/title.png";
 import skeletonImage from "../assets/images/skeleton.png";
 import kibizsystems from "../assets/images/kibizsystems.png";
+import Header from "../components/common/Header";
+import Footer from "../components/common/Footer";
 
 const API_URL = "https://python-fm-dapi-weaver.onrender.com/api/dataApi";
 const AUTH_HEADER = "Basic RGV2ZWxvcGVyOmFkbWluYml6";
@@ -153,21 +155,10 @@ const UserForm: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="flex flex-col justify-between items-center w-full h-full px-6 py-12 lg:py-14 xl:py-2 max-w-2xl mx-auto">
+    <div className="w-screen h-screen bg-white flex justify-center items-start overflow-x-hidden overflow-y-auto">
+      <div className="flex flex-col justify-between items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header Section */}
-        <div className="flex flex-col items-center justify-center gap-4 mb-6">
-          <img
-            src={kibizsystems}
-            alt="KiBiz Systems"
-            className="h-16 lg:h-20 object-contain"
-          />
-          <img
-            src={titleImage}
-            alt="Prompt-O-Saurus"
-            className="h-24 lg:h-32 object-contain"
-          />
-        </div>
+        <Header />
 
         {/* Form Section */}
         <div className="flex flex-col items-center justify-center flex-1 w-full mt-4 mb-6">
@@ -271,16 +262,7 @@ const UserForm: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col items-center gap-2 mt-2 mb-2">
-          <p className="text-[#7456e1] text-sm lg:text-base font-semibold">
-            POWERED BY
-          </p>
-          <img
-            src={kibiaiLogo}
-            alt="KiBi-AI"
-            className="h-16 lg:h-20 object-contain"
-          />
-        </div>
+        <Footer />
       </div>
     </div>
   );

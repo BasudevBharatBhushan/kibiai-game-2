@@ -1,101 +1,245 @@
 // src/utils/utility.ts
-export function initializeA4Pagination() {
-  const A4_WIDTH = 794; // ~210mm at 96 DPI
-  const A4_HEIGHT = 1123; // ~297mm at 96 DPI
-  const PAGE_PADDING = 38; // ~10mm padding
-  const CONTENT_HEIGHT = A4_HEIGHT - PAGE_PADDING * 6;
+export function initializeA4Pagination(onPageChange: (page: number) => void) {
+  // ---------- CONFIG ----------
+  const LETTER_WIDTH = 816; // 8.5" @ 96 DPI
+  const LETTER_HEIGHT = 500; // 11" @ 96 DPI
+  const PAGE_PADDING = 38;
+  const CONTENT_HEIGHT = LETTER_HEIGHT - PAGE_PADDING * 6;
+
+  const SELECTORS = {
+    topLevelSubsummary: ".dynamic-report > .subsummary.level-0",
+    subsummaryHeader: ".subsummary-header",
+    subsummaryDisplay: ".subsummary-display",
+    totalsBlock: ".section-totals",
+    table: "table.body-table",
+    thead: "thead",
+    tbody: "tbody",
+  };
 
   let currentPageIndex = 1;
   let totalPages = 0;
 
+  function clearOldPaginationMarks(root: Document | HTMLElement = document) {
+    root.querySelectorAll("[data-page-index]").forEach((el) => {
+      el.removeAttribute("data-page-index");
+      (el as HTMLElement).style.removeProperty("display");
+    });
+    root.querySelectorAll(".thead-repeat").forEach((el) => el.remove());
+  }
+  clearOldPaginationMarks();
+
   const topLevelSubsummaries = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      ".dynamic-report > .subsummary.level-0"
-    )
+    document.querySelectorAll<HTMLElement>(SELECTORS.topLevelSubsummary)
   );
 
-  function calculatePages() {
-    const tempContainer = document.createElement("div");
-    tempContainer.className = "dynamic-report";
-    tempContainer.style.visibility = "hidden";
-    tempContainer.style.position = "absolute";
-    tempContainer.style.width = `${A4_WIDTH - PAGE_PADDING * 2}px`;
-    tempContainer.style.padding = `${PAGE_PADDING}px`;
-    document.body.appendChild(tempContainer);
-
-    const pageBreaks: HTMLElement[][] = [];
-    let currentHeight = 0;
-    let currentPage: HTMLElement[] = [];
-
-    topLevelSubsummaries.forEach((summary) => {
-      const clone = summary.cloneNode(true) as HTMLElement;
-      tempContainer.appendChild(clone);
-      const elementHeight = clone.offsetHeight;
-      tempContainer.removeChild(clone);
-
-      if (
-        currentHeight + elementHeight > CONTENT_HEIGHT &&
-        currentPage.length > 0
-      ) {
-        pageBreaks.push([...currentPage]);
-        currentPage = [summary];
-        currentHeight = elementHeight;
-      } else {
-        currentPage.push(summary);
-        currentHeight += elementHeight;
-      }
-    });
-
-    if (currentPage.length > 0) {
-      pageBreaks.push(currentPage);
-    }
-
-    document.body.removeChild(tempContainer);
-
-    return pageBreaks;
+  if (topLevelSubsummaries.length === 0) {
+    updateTotalsUI(1, 1);
+    return exposeAPI();
   }
 
-  const pages = calculatePages();
-  totalPages = pages.length;
-  const totalPagesEl = document.getElementById("totalPages");
-  if (totalPagesEl) totalPagesEl.textContent = totalPages.toString();
+  function makeMeasureBox(): HTMLElement {
+    const box = document.createElement("div");
+    box.className = "dynamic-report";
+    box.style.visibility = "hidden";
+    box.style.position = "absolute";
+    box.style.left = "-99999px";
+    box.style.top = "0";
+    box.style.width = `${LETTER_WIDTH - PAGE_PADDING * 2}px`;
+    box.style.padding = `${PAGE_PADDING}px`;
+    document.body.appendChild(box);
+    return box;
+  }
 
-  function updatePageDisplay() {
-    topLevelSubsummaries.forEach((summary) => {
-      summary.style.display = "none";
-    });
+  function measureHeight(
+    node: Node | HTMLElement,
+    measureBox: HTMLElement
+  ): number {
+    const clone =
+      node instanceof HTMLElement
+        ? (node.cloneNode(true) as HTMLElement)
+        : document.createElement("div");
+    measureBox.appendChild(clone);
+    const h = (clone as HTMLElement).offsetHeight;
+    measureBox.removeChild(clone);
+    return h;
+  }
 
-    if (pages[currentPageIndex - 1]) {
-      pages[currentPageIndex - 1].forEach((summary) => {
-        summary.style.display = "block";
-      });
+  function calculatePages(): number {
+    const measureBox = makeMeasureBox();
+    let currentHeight = 0;
+    let pageIndex = 1;
+
+    function ensureFitsOrNewPage(nextHeight: number) {
+      if (currentHeight + nextHeight > CONTENT_HEIGHT && currentHeight > 0) {
+        pageIndex += 1;
+        currentHeight = 0;
+      }
+    }
+
+    function markForPage(el: HTMLElement, page: number) {
+      el.setAttribute("data-page-index", String(page));
+    }
+
+    for (const sub of topLevelSubsummaries) {
+      const headerEl = sub.querySelector<HTMLElement>(
+        SELECTORS.subsummaryHeader
+      );
+      const displayEl = sub.querySelector<HTMLElement>(
+        SELECTORS.subsummaryDisplay
+      );
+
+      let headerBlockHeight = 0;
+      if (headerEl) headerBlockHeight += measureHeight(headerEl, measureBox);
+      if (displayEl) headerBlockHeight += measureHeight(displayEl, measureBox);
+
+      if (headerBlockHeight > 0) {
+        ensureFitsOrNewPage(headerBlockHeight);
+        if (headerEl) markForPage(headerEl, pageIndex);
+        if (displayEl) markForPage(displayEl, pageIndex);
+        currentHeight += headerBlockHeight;
+      }
+
+      const tables = Array.from(
+        sub.querySelectorAll<HTMLTableElement>(SELECTORS.table)
+      );
+      for (const table of tables) {
+        const tbody = table.querySelector<HTMLTableSectionElement>(
+          SELECTORS.tbody
+        );
+        if (!tbody) continue;
+
+        const rowNodes = Array.from(
+          tbody.querySelectorAll<HTMLTableRowElement>("tr")
+        );
+        if (rowNodes.length === 0) continue;
+
+        for (const row of rowNodes) {
+          const rowH = measureHeight(row, measureBox);
+
+          if (currentHeight + rowH > CONTENT_HEIGHT && currentHeight > 0) {
+            pageIndex += 1;
+            currentHeight = 0;
+          }
+
+          markForPage(row, pageIndex);
+          currentHeight += rowH;
+        }
+      }
+
+      const totals = Array.from(
+        sub.querySelectorAll<HTMLElement>(SELECTORS.totalsBlock)
+      );
+      for (const t of totals) {
+        const h = measureHeight(t, measureBox);
+        ensureFitsOrNewPage(h);
+        markForPage(t, pageIndex);
+        currentHeight += h;
+      }
     }
 
     const trailingSummary =
       document.querySelector<HTMLElement>(".trailing-summary");
     if (trailingSummary) {
-      trailingSummary.style.display =
-        currentPageIndex === totalPages ? "block" : "none";
+      const h = measureHeight(trailingSummary, measureBox);
+      ensureFitsOrNewPage(h);
+      markForPage(trailingSummary, pageIndex);
+      currentHeight += h;
     }
 
-    const currentPageEl = document.getElementById("currentPage");
-    if (currentPageEl) currentPageEl.textContent = currentPageIndex.toString();
-
-    const prevBtn = document.getElementById("prevPage") as HTMLButtonElement;
-    const nextBtn = document.getElementById("nextPage") as HTMLButtonElement;
-
-    if (prevBtn) prevBtn.disabled = currentPageIndex === 1;
-    if (nextBtn) nextBtn.disabled = currentPageIndex === totalPages;
+    document.body.removeChild(measureBox);
+    return pageIndex;
   }
 
-  document.getElementById("prevPage")?.addEventListener("click", () => {
+  function toggleVisibilityForPage(page: number) {
+    const paginated = Array.from(
+      document.querySelectorAll<HTMLElement>("[data-page-index]")
+    );
+
+    paginated.forEach((el) => {
+      if (!el.dataset.originalDisplay) {
+        el.dataset.originalDisplay = getComputedStyle(el).display || "block";
+      }
+    });
+
+    paginated.forEach((el) => {
+      (el as HTMLElement).style.display = "none";
+    });
+
+    const showNow = paginated.filter(
+      (el) => el.dataset.pageIndex === String(page)
+    );
+    showNow.forEach((el) => {
+      const original = el.dataset.originalDisplay || "block";
+      if (el.tagName === "TR") {
+        (el as HTMLElement).style.display = "table-row";
+      } else if (el.tagName === "TH" || el.tagName === "TD") {
+        (el as HTMLElement).style.display = "table-cell";
+      } else {
+        (el as HTMLElement).style.display = original;
+      }
+    });
+
+    const tables = Array.from(
+      document.querySelectorAll<HTMLTableElement>("table.body-table")
+    );
+    tables.forEach((tbl) => {
+      const visibleRows = tbl.querySelectorAll<HTMLElement>(
+        `tr[data-page-index="${page}"]`
+      );
+      (tbl as HTMLElement).style.display =
+        visibleRows.length > 0 ? "table" : "none";
+    });
+
+    const subs = Array.from(
+      document.querySelectorAll<HTMLElement>(".subsummary")
+    );
+    subs.forEach((s) => {
+      const hasVisible = s.querySelector<HTMLElement>(
+        `[data-page-index="${page}"]`
+      );
+      (s as HTMLElement).style.display = hasVisible ? "block" : "none";
+    });
+
+    const report = document.querySelector<HTMLElement>(".dynamic-report");
+    if (report) report.style.display = "block";
+  }
+
+  function updateTotalsUI(current: number, total: number) {
+    const totalPagesEl = document.getElementById("totalPages");
+    if (totalPagesEl) totalPagesEl.textContent = String(total);
+    const currentPageEl = document.getElementById("currentPage");
+    if (currentPageEl) currentPageEl.textContent = String(current);
+
+    const prevBtn = document.getElementById(
+      "prevPage"
+    ) as HTMLButtonElement | null;
+    const nextBtn = document.getElementById(
+      "nextPage"
+    ) as HTMLButtonElement | null;
+    if (prevBtn) prevBtn.disabled = current <= 1;
+    if (nextBtn) nextBtn.disabled = current >= total;
+  }
+
+  function updatePageDisplay() {
+    toggleVisibilityForPage(currentPageIndex);
+    onPageChange(currentPageIndex);
+    updateTotalsUI(currentPageIndex, totalPages);
+  }
+
+  totalPages = calculatePages();
+  updatePageDisplay();
+
+  const prevBtn = document.getElementById("prevPage");
+  const nextBtn = document.getElementById("nextPage");
+
+  prevBtn?.addEventListener("click", () => {
     if (currentPageIndex > 1) {
       currentPageIndex--;
       updatePageDisplay();
     }
   });
 
-  document.getElementById("nextPage")?.addEventListener("click", () => {
+  nextBtn?.addEventListener("click", () => {
     if (currentPageIndex < totalPages) {
       currentPageIndex++;
       updatePageDisplay();
@@ -107,36 +251,32 @@ export function initializeA4Pagination() {
     clearTimeout(resizeTimeout);
     resizeTimeout = setTimeout(() => {
       const oldPage = currentPageIndex;
-      pages.length = 0;
-      pages.push(...calculatePages());
-      totalPages = pages.length;
-      const totalPagesEl = document.getElementById("totalPages");
-      if (totalPagesEl) totalPagesEl.textContent = totalPages.toString();
+      clearOldPaginationMarks();
+      totalPages = calculatePages();
       currentPageIndex = Math.min(oldPage, totalPages);
       updatePageDisplay();
     }, 200);
   });
 
-  updatePageDisplay();
-
-  return {
-    getCurrentPage: () => currentPageIndex,
-    getTotalPages: () => totalPages,
-    goToPage: (pageNum: number) => {
-      if (pageNum > 0 && pageNum <= totalPages) {
-        currentPageIndex = pageNum;
+  function exposeAPI() {
+    return {
+      getCurrentPage: () => currentPageIndex,
+      getTotalPages: () => totalPages,
+      goToPage: (pageNum: number) => {
+        if (pageNum > 0 && pageNum <= totalPages) {
+          currentPageIndex = pageNum;
+          updatePageDisplay();
+        }
+      },
+      recalculatePages: () => {
+        const oldPage = currentPageIndex;
+        clearOldPaginationMarks();
+        totalPages = calculatePages();
+        currentPageIndex = Math.min(oldPage, totalPages);
         updatePageDisplay();
-      }
-    },
-    recalculatePages: () => {
-      const oldPage = currentPageIndex;
-      pages.length = 0;
-      pages.push(...calculatePages());
-      totalPages = pages.length;
-      const totalPagesEl = document.getElementById("totalPages");
-      if (totalPagesEl) totalPagesEl.textContent = totalPages.toString();
-      currentPageIndex = Math.min(oldPage, totalPages);
-      updatePageDisplay();
-    },
-  };
+      },
+    };
+  }
+
+  return exposeAPI();
 }
