@@ -7,8 +7,8 @@ import Footer from "../components/common/Footer";
 
 const Score: React.FC = () => {
   const navigate = useNavigate();
-  const { score, userName, level } = useAppContext();
-  console.log(level);
+  const { score, userName } = useAppContext();
+
   // ✅ TEST JSON (Remove once done testing UI)
   const testScore = {
     score: 12,
@@ -28,26 +28,13 @@ const Score: React.FC = () => {
     ],
   };
 
-  // ✅ For testing, OVERRIDE real score
-  const displayScoreJSON = score || testScore; // replace with "score" later
+  // ✅ Using second JSON format (no score_json wrapper)
+  const displayScoreJSON = score || testScore;
   const displayName = userName || "Explorer";
   const displayLevel = displayScoreJSON.level || "EASY";
   const numericScore = displayScoreJSON.score || 0;
   const overview = displayScoreJSON.overview || {};
   const suggestions = displayScoreJSON.suggestions || [];
-
-  // const statusColor = (status?: string) => {
-  //   switch (status) {
-  //     case "matched":
-  //       return "text-green-600";
-  //     case "partial":
-  //       return "text-yellow-600";
-  //     case "mismatch":
-  //       return "text-red-600";
-  //     default:
-  //       return "text-gray-600";
-  //   }
-  // };
 
   const statusBadgeColor = (status?: string) => {
     switch (status) {
@@ -68,6 +55,7 @@ const Score: React.FC = () => {
         <Header />
 
         <div className="flex flex-col items-center justify-center flex-1 w-full mt-8 lg:mt-10 xl:mt-12 mb-8 lg:mb-10 xl:mb-12">
+
           {/* Score Card */}
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-3xl shadow-lg p-8 lg:p-10 xl:p-12 flex flex-col items-center justify-center text-center w-full max-w-lg lg:max-w-xl mb-10 lg:mb-12 xl:mb-14">
             <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#5e17eb] mb-3 lg:mb-4">
@@ -95,7 +83,6 @@ const Score: React.FC = () => {
             <h3 className="text-2xl lg:text-3xl xl:text-3xl font-bold text-[#5e17eb] text-center mb-6 lg:mb-8 xl:mb-10 uppercase tracking-wide">
               Overview
             </h3>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5 xl:gap-6">
               {Object.entries(overview).map(([key, value]: any) => (
                 <div
@@ -146,7 +133,7 @@ const Score: React.FC = () => {
             </div>
           )}
 
-          {/* Try Again Button */}
+          {/* Try Again */}
           <button
             className="bg-[#5e17eb] hover:bg-purple-700 text-white font-bold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 lg:gap-4 px-10 py-4 lg:px-12 lg:py-5 xl:px-14 xl:py-5 text-lg lg:text-xl xl:text-xl"
             onClick={() => navigate("/")}
