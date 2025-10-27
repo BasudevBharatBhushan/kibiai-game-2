@@ -362,7 +362,7 @@ const GenerateReport: React.FC = () => {
       // 🧮 3️⃣ Evaluate Score
       const score = await compareReportsAndGetScore(
         level,
-        reportJson, // ideal (AI-generated config)
+        reportConfig, // ideal (AI-generated config)
         parsedConfig  // placeholder; replace with user config if applicable
       );
 
