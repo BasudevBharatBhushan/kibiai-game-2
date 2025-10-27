@@ -144,7 +144,7 @@ const Preview: React.FC = () => {
           ref={containerRef}
           className="
     bg-gray-100 rounded-sm shadow-md w-full flex justify-center items-start
-    h-[70vh]         
+    h-[800px]         
     xl:h-[800px]       
     overflow-hidden   
   "

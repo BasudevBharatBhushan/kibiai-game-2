@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 // Import images
-import titleImage from "../assets/images/title.png";
+
 import skeletonImage from "../assets/images/skeleton.png";
-import kibizsystems from "../assets/images/kibizsystems.png";
-import kibiaiLogo from "../assets/images/kibiai.png";
+
 import DynamicReport from "../components/sections/DynamicReport";
 import { useAppContext } from "../context/AppContext";
+import Header from "../components/common/Header";
+import Footer from "../components/common/Footer";
 
 // 🧩 Custom hook for responsive scaling
 const useResponsiveScale = () => {
@@ -20,7 +21,7 @@ const useResponsiveScale = () => {
       if (containerRef.current && contentRef.current) {
         const containerWidth = containerRef.current.clientWidth;
         const contentWidth = contentRef.current.scrollWidth;
-        const availableWidth = containerWidth - 60;
+        const availableWidth = containerWidth - 100;
 
         if (contentWidth > availableWidth) {
           const newScale = availableWidth / contentWidth;
@@ -55,27 +56,17 @@ const ReportPreview: React.FC = () => {
   console.log("Report JSON:", reportJson);
 
   return (
-    <div className="w-screen min-h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-12 lg:py-16 xl:py-2 max-w-5xl mx-auto">
+    <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
+      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col items-center justify-center gap-4 mb-4">
-          <img
-            src={kibizsystems}
-            alt="KiBiz Systems"
-            className="h-16 lg:h-20 object-contain"
-          />
-          <img
-            src={titleImage}
-            alt="Prompt-O-Saurus"
-            className="h-24 lg:h-32 object-contain"
-          />
-        </div>
+        <Header />
 
         {/* Report Section */}
         <div
           ref={containerRef}
-          className="bg-gray-100 rounded-2xl shadow-md p-6 lg:p-8 w-full flex justify-center items-start overflow-hidden relative"
-          style={{ minHeight: "60vh" }}
+          overflow-hidden
+          className="bg-gray-100 rounded-2xl shadow-md p-6 lg:p-8 w-full flex justify-center items-start overflow-hidden relative "
+          style={{ height: "800px" }}
         >
           {isReady ? (
             <div
@@ -124,16 +115,7 @@ const ReportPreview: React.FC = () => {
         </div>
 
         {/* Footer */}
-        <div className="flex flex-col items-center gap-2 mt-2 mb-2">
-          <p className="text-[#7456e1] text-sm lg:text-base font-semibold">
-            POWERED BY
-          </p>
-          <img
-            src={kibiaiLogo}
-            alt="KiBi-AI"
-            className="h-16 lg:h-20 object-contain"
-          />
-        </div>
+        <Footer />
       </div>
     </div>
   );
