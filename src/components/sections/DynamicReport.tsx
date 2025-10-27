@@ -111,7 +111,7 @@ function generateDynamicReport(jsonData: any[]): string {
     return `
       <div className="title-header">
         
-        <div></div>
+      
         <div>
           <h1>${titleHeader.MainHeading}</h1>
          <h2>KiBiz Systems • 800-946-2854 • www.kibizsystems.com</h2>
