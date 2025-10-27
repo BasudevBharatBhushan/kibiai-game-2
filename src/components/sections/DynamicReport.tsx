@@ -110,7 +110,7 @@ function generateDynamicReport(jsonData: any[]): string {
   function generateTitleHeader(titleHeader: any) {
     return `
       <div className="title-header">
-        
+        <div></div>
       
         <div>
           <h1>${titleHeader.MainHeading}</h1>
