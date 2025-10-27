@@ -23,7 +23,7 @@ const GenerateReport: React.FC = () => {
     setCustomReportConfig,
     userID,
     templateID,
-    // reportConfig,
+    reportConfig,
 
     setScore,
 
@@ -362,7 +362,7 @@ const GenerateReport: React.FC = () => {
       // 🧮 3️⃣ Evaluate Score
       const score = await compareReportsAndGetScore(
         level,
-        parsedConfig, // ideal (AI-generated config)
+        reportJson, // ideal (AI-generated config)
         parsedConfig  // placeholder; replace with user config if applicable
       );
 
