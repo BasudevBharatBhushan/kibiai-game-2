@@ -111,7 +111,8 @@ function generateDynamicReport(jsonData: any[]): string {
   function generateTitleHeader(titleHeader: any) {
     return `
       <div className="title-header">
-        <img src="${Logo}" alt="logo" style="width:100px">
+        // <img src="${Logo}" alt="logo" style="width:100px">
+        <div></div>
         <div>
           <h1>${titleHeader.MainHeading}</h1>
          <h2>KiBiz Systems • 800-946-2854 • www.kibizsystems.com</h2>
