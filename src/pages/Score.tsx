@@ -7,7 +7,7 @@ import Footer from "../components/common/Footer";
 
 const Score: React.FC = () => {
   const navigate = useNavigate();
-  const { score, userName } = useAppContext();
+  const { score, userName, level } = useAppContext();
 
   // ✅ TEST JSON (Remove once done testing UI)
   const testScore = {
@@ -31,7 +31,7 @@ const Score: React.FC = () => {
   // ✅ Using second JSON format (no score_json wrapper)
   const displayScoreJSON = score || testScore;
   const displayName = userName || "Explorer";
-  const displayLevel = displayScoreJSON.level || "EASY";
+  const displayLevel = displayScoreJSON?.level ?? level ?? "EASY";
   const numericScore = displayScoreJSON.score || 0;
   const overview = displayScoreJSON.overview || {};
   const suggestions = displayScoreJSON.suggestions || [];
