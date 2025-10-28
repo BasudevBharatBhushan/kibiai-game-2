@@ -16,24 +16,26 @@ const useResponsiveScale = () => {
   const contentRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
 
-  useEffect(() => {
-    const updateScale = () => {
-      if (containerRef.current && contentRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const contentWidth = contentRef.current.scrollWidth;
-        const availableWidth = containerWidth - 100;
-        if (contentWidth > availableWidth) {
-          const newScale = availableWidth / contentWidth;
-          setScale(Math.min(newScale, 1));
-        } else {
-          setScale(1);
-        }
-      }
-    };
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, []);
+  console.log(setScale);
+
+  // useEffect(() => {
+  //   const updateScale = () => {
+  //     if (containerRef.current && contentRef.current) {
+  //       const containerWidth = containerRef.current.clientWidth;
+  //       const contentWidth = contentRef.current.scrollWidth;
+  //       const availableWidth = containerWidth - 100;
+  //       if (contentWidth > availableWidth) {
+  //         const newScale = availableWidth / contentWidth;
+  //         setScale(Math.min(newScale, 1));
+  //       } else {
+  //         setScale(1);
+  //       }
+  //     }
+  //   };
+  //   updateScale();
+  //   window.addEventListener("resize", updateScale);
+  //   return () => window.removeEventListener("resize", updateScale);
+  // }, []);
 
   return { containerRef, contentRef, scale };
 };
@@ -140,13 +142,13 @@ const ReportPreviewTest: React.FC = () => {
     <div className="w-full min-h-screen bg-white flex flex-col items-center overflow-x-hidden overflow-y-auto p-4 md:p-6">
       <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
         <Header />
-        <div 
+        <div
           ref={containerRef}
           className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 overflow-hidden"
           style={{
-            height: 'calc(100vh - 300px)',
-            minHeight: '500px',
-            maxHeight: '800px',
+            height: "calc(100vh - 300px)",
+            minHeight: "500px",
+            maxHeight: "800px",
           }}
         >
           {loading ? (
@@ -161,8 +163,8 @@ const ReportPreviewTest: React.FC = () => {
               className="w-full h-full overflow-auto p-2 md:p-4"
               style={{
                 transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                transition: 'transform 0.3s ease',
+                transformOrigin: "top center",
+                transition: "transform 0.3s ease",
               }}
             >
               <DynamicReport jsonData={reportJson} />
@@ -199,4 +201,3 @@ const ReportPreviewTest: React.FC = () => {
 };
 
 export default ReportPreviewTest;
- 

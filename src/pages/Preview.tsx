@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Import images
 import skeletonImage from "../assets/images/skeleton.png";
 import DynamicReport from "../components/sections/DynamicReport";
 import { useAppContext } from "../context/AppContext";
@@ -11,37 +10,7 @@ import Footer from "../components/common/Footer";
 const API_URL = "https://python-fm-dapi-weaver.onrender.com/api/dataApi";
 const AUTH_HEADER = "Basic RGV2ZWxvcGVyOmFkbWluYml6";
 
-// Custom hook for responsive scaling
-const useResponsiveScale = () => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-
-  useEffect(() => {
-    const updateScale = () => {
-      if (containerRef.current && contentRef.current) {
-        const containerWidth = containerRef.current.clientWidth;
-        const contentWidth = contentRef.current.scrollWidth;
-        const availableWidth = containerWidth - 100;
-        if (contentWidth > availableWidth) {
-          const newScale = availableWidth / contentWidth;
-          setScale(Math.min(newScale, 1));
-        } else {
-          setScale(1);
-        }
-      }
-    };
-
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, []);
-
-  return { containerRef, contentRef, scale };
-};
-
 const Preview: React.FC = () => {
-  const { containerRef, contentRef, scale } = useResponsiveScale();
   const {
     level,
     reportJson,
@@ -52,11 +21,10 @@ const Preview: React.FC = () => {
     isReportGenerated,
     setIsReportGenerated,
   } = useAppContext();
-  const [loading, setLoading] = useState(false);
 
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch template based on level
   useEffect(() => {
     const fetchTemplate = async () => {
       try {
@@ -71,11 +39,7 @@ const Preview: React.FC = () => {
             dateformats: 0,
             query: [{ Level: level }],
           },
-          session: {
-            token: "",
-            required: "",
-            kill_session: true,
-          },
+          session: { token: "", required: "", kill_session: true },
         };
 
         const response = await fetch(API_URL, {
@@ -89,18 +53,12 @@ const Preview: React.FC = () => {
 
         const data = await response.json();
 
-        // Handle null or no records
-        if (
-          !data.records ||
-          data.records === null ||
-          data.records.length === 0
-        ) {
+        if (!data.records || data.records.length === 0) {
           console.warn("No templates found for this level:", level);
           setLoading(false);
           return;
         }
 
-        // Randomly select a template
         const randomTemplate =
           data.records[Math.floor(Math.random() * data.records.length)];
 
@@ -108,7 +66,6 @@ const Preview: React.FC = () => {
         const reportJSON =
           randomTemplate.ReportJSON || randomTemplate.reportJSON || null;
 
-        // Set values in global context
         setTemplateID(templateID);
         if (reportJSON) {
           const parsed =
@@ -121,7 +78,6 @@ const Preview: React.FC = () => {
         setReportConfig(randomTemplate.ReportConfigJSON || null);
         setReportSetup(randomTemplate.SetupJSON || null);
         setIsReportGenerated(true);
-
         setLoading(false);
       } catch (error) {
         console.error("Error fetching templates:", error);
@@ -135,60 +91,67 @@ const Preview: React.FC = () => {
   }, [level, setTemplateID, setReportJson, setReportConfig, setReportSetup]);
 
   return (
-    <div className="w-screen h-screen bg-white flex justify-center items-center overflow-x-hidden overflow-y-auto">
-      <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
-        {/* Header Section */}
+    <div className="w-full min-h-screen bg-white flex flex-col items-center overflow-x-hidden overflow-y-auto p-4 lg:p-6">
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center">
+        {/* Header */}
         <Header />
 
+        {/* Report Container */}
         <div
-          ref={containerRef}
-          className="
-    bg-gray-100 rounded-sm shadow-md w-full flex justify-center items-start
-    h-[800px]         
-    xl:h-[800px]       
-    overflow-hidden   
-  "
+          className="bg-gray-50 rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+          style={{
+            height: "calc(100vh - 300px)",
+            minHeight: "500px",
+            maxHeight: "800px",
+          }}
         >
           {loading ? (
-            <div className="text-center text-[#5e17eb] font-semibold p-10">
-              Loading {level} Level Report...
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-[#5e17eb] font-semibold p-6">
+                Loading {level} Level Report...
+              </div>
             </div>
           ) : reportJson ? (
             <div
-              ref={contentRef}
-              className="w-full h-full overflow-hidden"
-              style={{
-                transform: `scale(${scale})`,
-                transformOrigin: "top center",
-                transition: "transform .3s ease",
-              }}
+              className="w-full h-full overflow-auto p-2 lg:p-4  [&::-webkit-scrollbar]:w-1.5 
+  [&::-webkit-scrollbar-thumb]:bg-gray-50 
+  [&::-webkit-scrollbar-thumb:hover]:bg-gray-100 
+  [&::-webkit-scrollbar-track]:bg-transparent 
+  [scrollbar-width:thin]"
             >
               <DynamicReport jsonData={reportJson} />
             </div>
           ) : (
-            <div className="text-center text-gray-600 font-semibold">
-              No report template found.
+            <div className="h-full flex items-center justify-center">
+              <div className="text-center text-gray-600 font-semibold p-6">
+                No report template found.
+              </div>
             </div>
           )}
         </div>
 
-        <p className="text-[#5e17eb] text-center text-base lg:text-xl font-bold mt-6 mb-4">
-          Preview of your Medium Level Report
+        {/* Title */}
+        <p className="text-[#5e17eb] text-center text-base xl:text-xl font-bold mt-6 mb-4">
+          Preview of your {level} Level Report
         </p>
 
-        <button
-          disabled={loading || !reportJson}
-          onClick={() => navigate("/generate-report")}
-          className={`${
-            loading || !reportJson
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-[#5e17eb] hover:bg-purple-700"
-          } text-white font-semibold rounded-full shadow-lg px-8 py-3 text-lg flex items-center gap-3`}
-        >
-          <img src={skeletonImage} className="h-6 lg:h-7" />
-          {loading ? "LOADING..." : "READY TO PROMPT"}
-        </button>
+        {/* Action Button */}
+        <div className="w-full flex justify-center mt-6 mb-8">
+          <button
+            disabled={loading || !reportJson}
+            onClick={() => navigate("/generate-report")}
+            className={`${
+              loading || !reportJson
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#5e17eb] hover:bg-purple-700 transform hover:scale-105 transition-transform"
+            } text-white font-semibold rounded-full shadow-lg px-6 py-3 text-base lg:px-8 lg:py-3 xl:text-lg flex items-center gap-2 lg:gap-3`}
+          >
+            <img src={skeletonImage} className="h-5 lg:h-6 xl:h-7" alt="" />
+            {loading ? "LOADING..." : "READY TO PROMPT"}
+          </button>
+        </div>
 
+        {/* Footer */}
         <Footer />
       </div>
     </div>
