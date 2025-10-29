@@ -31,7 +31,7 @@ const Instructions: React.FC = () => {
               ].map((text, index) => (
                 <div
                   key={index}
-                  className="flex items-start gap-3 text-gray-800 text-base lg:text-lg leading-snug"
+                  className="flex justify-start items-baseline gap-3 text-gray-800 text-base lg:text-lg leading-snug"
                 >
                   <span className="bg-[#5e17eb] text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold mt-1 flex-shrink-0">
                     {index + 1}
