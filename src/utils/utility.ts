@@ -33,7 +33,56 @@ export function initializeA4Pagination(onPageChange: (page: number) => void) {
   );
 
   if (topLevelSubsummaries.length === 0) {
-    updateTotalsUI(1, 1);
+    const measureBox = makeMeasureBox();
+    let currentHeight = 0;
+    let pageIndex = 1;
+
+    const bodyTables = Array.from(
+      document.querySelectorAll<HTMLTableElement>(SELECTORS.table)
+    );
+
+    for (const table of bodyTables) {
+      const tbody = table.querySelector<HTMLTableSectionElement>(
+        SELECTORS.tbody
+      );
+      if (!tbody) continue;
+
+      const rows = Array.from(
+        tbody.querySelectorAll<HTMLTableRowElement>("tr")
+      );
+      for (const row of rows) {
+        const rowH = measureHeight(row, measureBox);
+        if (currentHeight + rowH > CONTENT_HEIGHT && currentHeight > 0) {
+          pageIndex++;
+          currentHeight = 0;
+        }
+        row.setAttribute("data-page-index", String(pageIndex));
+        currentHeight += rowH;
+      }
+    }
+
+    document.body.removeChild(measureBox);
+    totalPages = pageIndex;
+
+    // ✅ Ensure nav buttons exist & work
+    const prevBtn = document.getElementById("prevPage");
+    const nextBtn = document.getElementById("nextPage");
+
+    prevBtn?.addEventListener("click", () => {
+      if (currentPageIndex > 1) {
+        currentPageIndex--;
+        updatePageDisplay();
+      }
+    });
+
+    nextBtn?.addEventListener("click", () => {
+      if (currentPageIndex < totalPages) {
+        currentPageIndex++;
+        updatePageDisplay();
+      }
+    });
+
+    updatePageDisplay();
     return exposeAPI();
   }
 
