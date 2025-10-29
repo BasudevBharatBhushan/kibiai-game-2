@@ -154,7 +154,7 @@ const UserForm: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-screen bg-white flex justify-center items-start overflow-x-hidden overflow-y-auto">
+    <div className="w-screen min-h-[calc(100vh-60px)] bg-white flex justify-center items-start overflow-x-hidden overflow-y-auto">
       <div className="flex flex-col justify-between items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header Section */}
         <Header />

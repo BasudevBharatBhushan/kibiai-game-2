@@ -46,7 +46,7 @@ const Level: React.FC = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen bg-white flex justify-center items-start overflow-hidden">
+    <div className="w-screen  min-h-[calc(100vh-60px)] bg-white flex justify-center items-start overflow-hidden">
       <div className="grid grid-rows-[auto_1fr_auto] w-full min-h-screen px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header Section */}
         <Header />

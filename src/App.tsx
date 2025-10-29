@@ -9,6 +9,7 @@ import Score from "./pages/Score";
 import UserForm from "./pages/UserForm";
 import ReportPreview from "./pages/ReportPreview";
 import ReportPreviewTest from "./pages/ReportPreviewTest";
+import LoaderTest from "./pages/LoaderTest";
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
           <Route path="/user-form" element={<UserForm />} />
           <Route path="/report-preview" element={<ReportPreview />} />
           <Route path="/report-preview-test" element={<ReportPreviewTest />} />
+          <Route path="/loader-test" element={<LoaderTest />} />
         </Routes>
       </main>
       {/* <Footer /> */}

@@ -8,7 +8,7 @@ import kibizsystems from "../assets/images/kibizsystems.png";
 const Home: React.FC = () => {
   const navigate = useNavigate();
   return (
-    <div className="w-screen h-screen overflow-hidden flex justify-center items-start bg-white">
+    <div className="w-screen h-[calc(100vh-60px)] overflow-hidden flex justify-center items-start bg-white">
       <div className="grid grid-rows-[auto_1fr_auto] items-center justify-items-center w-full h-full px-8 py-12 lg:px-12 lg:py-14 xl:px-16 xl:py-12">
         {/* Top Section - KiBiz Systems + PRESENTS */}
         <div className="flex flex-col items-center gap-2 lg:gap-3 xl:gap-2">

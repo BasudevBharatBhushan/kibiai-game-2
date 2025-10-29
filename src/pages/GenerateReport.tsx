@@ -5,6 +5,7 @@ import DynamicReport from "../components/sections/DynamicReport";
 import { useAppContext } from "../context/AppContext";
 import Header from "../components/common/Header";
 import Footer from "../components/common/Footer";
+import AnimatedLoader from "../components/AnimatedLoader";
 
 // ✅ Environment Variables (from .env)
 const ASSISTANT_API = import.meta.env.VITE_ASSISTANT_API;
@@ -37,6 +38,8 @@ const GenerateReport: React.FC = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalError, setModalError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [processStage, setProcessStage] = useState(1);
+  const [processStart, setProcessStart] = useState(false);
 
   // disable background scroll when modal open
   useEffect(() => {
@@ -292,15 +295,19 @@ const GenerateReport: React.FC = () => {
   };
 
   const handleSubmit = async () => {
+    setLoading(true);
+    setProcessStart(true);
+    setProcessStage(1);
+
     if (!promptText.trim()) return alert("Please enter a prompt.");
     if (!reportSetup) return alert("Missing report setup.");
-
-    setLoading(true);
 
     try {
       // 1️⃣ Assistant API
       const assistantPrompt = buildAssistantPrompt(promptText, reportSetup);
       const assistantRes = await callAssistant(assistantPrompt);
+
+      setProcessStage(2);
 
       // Validate assistant response
       if (!assistantRes || !assistantRes.latestMessage) {
@@ -325,7 +332,11 @@ const GenerateReport: React.FC = () => {
       }
 
       // Check if config is invalid (must have db_defination as primary indicator)
-      if (!parsedConfig || typeof parsedConfig !== 'object' || !parsedConfig.db_defination) {
+      if (
+        !parsedConfig ||
+        typeof parsedConfig !== "object" ||
+        !parsedConfig.db_defination
+      ) {
         openModal(
           "Insufficient Information",
           `Insufficient information provided to AI for report generation. Please provide more specific details about the report you want to create.\n\nAI Response:\n${msg}`
@@ -338,8 +349,14 @@ const GenerateReport: React.FC = () => {
       // 2️⃣ Generate Report
       const generated = await callGenerateReport(reportSetup, parsedConfig);
 
+      setProcessStage(3);
+
       // Validate generated report
-      if (!generated || typeof generated !== 'object' || Object.keys(generated).length === 0) {
+      if (
+        !generated ||
+        typeof generated !== "object" ||
+        Object.keys(generated).length === 0
+      ) {
         openModal(
           "Insufficient Information",
           `Insufficient information provided to AI for report generation. Please refine your prompt with more details.\n\nAI Response:\n${msg}`
@@ -349,7 +366,11 @@ const GenerateReport: React.FC = () => {
 
       const reportJson = generated.report_structure_json || {};
 
-      if (!reportJson || typeof reportJson !== 'object' || Object.keys(reportJson).length === 0) {
+      if (
+        !reportJson ||
+        typeof reportJson !== "object" ||
+        Object.keys(reportJson).length === 0
+      ) {
         openModal(
           "Insufficient Information",
           `Insufficient information provided to AI for report generation. Please try again with a more detailed prompt.\n\nAI Response:\n${msg}`
@@ -363,7 +384,7 @@ const GenerateReport: React.FC = () => {
       const score = await compareReportsAndGetScore(
         level,
         reportConfig, // ideal (AI-generated config)
-        parsedConfig  // placeholder; replace with user config if applicable
+        parsedConfig // placeholder; replace with user config if applicable
       );
 
       setScore(score.score_json);
@@ -375,7 +396,6 @@ const GenerateReport: React.FC = () => {
 
       // ✅ Navigate to report preview page
       navigate("/report-preview");
-
     } catch (err: any) {
       console.error("Report generation error:", err);
       openModal(
@@ -384,6 +404,7 @@ const GenerateReport: React.FC = () => {
       );
     } finally {
       setLoading(false);
+      setTimeout(() => setProcessStart(false), 1000); // smooth fade-out
     }
   };
 
@@ -414,6 +435,8 @@ const GenerateReport: React.FC = () => {
 
   return (
     <div className="w-screen h-screen bg-white flex justify-center items-start overflow-x-hidden overflow-y-auto">
+      <AnimatedLoader processStart={processStart} processStage={processStage} />
+      {/* ✅ Loader */}
       <div className="flex flex-col justify-between items-center w-full h-full px-6 py-6 lg:py-10 xl:py-2 max-w-2xl mx-auto">
         {/* Header */}
         <Header />
@@ -422,7 +445,7 @@ const GenerateReport: React.FC = () => {
         <div className="flex flex-col items-center justify-center flex-1 w-full mt-2 mb-6">
           <button
             onClick={() => navigate("/preview")}
-            className="mb-6 px-6 py-2 border border-[#5e17eb] text-[#5e17eb] hover:bg-[#5e17eb] hover:text-white font-light rounded-full transition-all duration-200 text-lg"
+            className="mb-6 px-6 py-2 border border-[#5e17eb] text-[#5e17eb] hover:bg-[#5e17eb] hover:text-white font-light rounded-full transition-all duration-200 text-sm"
           >
             SHOW PREVIEW
           </button>
@@ -437,10 +460,11 @@ const GenerateReport: React.FC = () => {
           <button
             disabled={loading}
             onClick={handleSubmit}
-            className={`mt-8 ${loading
+            className={`mt-8 ${
+              loading
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-[#5e17eb] hover:bg-purple-700"
-              } text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg`}
+            } text-white font-semibold rounded-full shadow-lg transition-all duration-200 transform hover:scale-105 flex items-center justify-center gap-3 px-8 py-3 text-lg`}
           >
             <img src={skeletonImage} alt="" className="h-6 lg:h-7" />
             <span>{loading ? "PROCESSING..." : "SUBMIT"}</span>
@@ -517,8 +541,9 @@ const GenerateReport: React.FC = () => {
                                   return (
                                     <div
                                       key={field}
-                                      className={`px-2 py-1 text-sm rounded-md mb-1 border ${color ? "text-white" : "text-gray-700"
-                                        }`}
+                                      className={`px-2 py-1 text-sm rounded-md mb-1 border ${
+                                        color ? "text-white" : "text-gray-700"
+                                      }`}
                                       style={{
                                         backgroundColor: color || "transparent",
                                         borderColor: color || "#ddd",
@@ -557,7 +582,6 @@ const GenerateReport: React.FC = () => {
         {/* Footer */}
         <Footer />
       </div>
-
       {/* Modal Preview */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center">
@@ -596,7 +620,6 @@ const GenerateReport: React.FC = () => {
           </div>
         </div>
       )}
-
       {/* Toast */}
       {toast && (
         <div className="fixed right-6 bottom-6 z-60 bg-white border rounded-md px-4 py-2 shadow-lg">

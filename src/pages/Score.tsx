@@ -50,12 +50,11 @@ const Score: React.FC = () => {
   };
 
   return (
-    <div className="w-screen min-h-screen bg-white flex justify-center items-start overflow-y-auto">
+    <div className="w-screen  min-h-[calc(100vh-60px)] bg-white flex justify-center items-start overflow-y-auto">
       <div className="flex flex-col justify-between items-center w-full min-h-screen px-6 py-8 lg:px-8 lg:py-10 xl:px-12 xl:py-12 max-w-3xl lg:max-w-4xl xl:max-w-5xl mx-auto">
         <Header />
 
         <div className="flex flex-col items-center justify-center flex-1 w-full mt-8 lg:mt-10 xl:mt-12 mb-8 lg:mb-10 xl:mb-12">
-
           {/* Score Card */}
           <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-3xl shadow-lg p-8 lg:p-10 xl:p-12 flex flex-col items-center justify-center text-center w-full max-w-lg lg:max-w-xl mb-10 lg:mb-12 xl:mb-14">
             <h1 className="text-2xl lg:text-3xl xl:text-4xl font-bold text-[#5e17eb] mb-3 lg:mb-4">
